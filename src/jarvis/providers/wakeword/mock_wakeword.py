@@ -2,13 +2,19 @@
 MockWakeWord provider for testing wake word detection and automated triggers.
 """
 
-import asyncio
 from vidya.core.base import ServiceStatus, HealthStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import WakeWordProtocol
+from vidya.providers.registry import register_provider
 
 
+@register_provider("wakeword", "mock")
 class MockWakeWord(WakeWordProtocol):
     """Synthetic wake word detector with trigger toggle."""
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "MockWakeWord":
+        return cls(threshold=config.wakeword.threshold)
 
     def __init__(self, threshold: float = 0.5) -> None:
         self.threshold = threshold

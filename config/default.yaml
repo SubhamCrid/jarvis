@@ -19,15 +19,15 @@ wakeword:
   sample_rate: 16000
 
 vad:
-  energy_threshold: 0.02
+  energy_threshold: 0.008
   silence_duration_ms: 1800
   speech_pad_ms: 300
 
 stt:
-  provider: "whisper_cpp"
+  provider: "faster_whisper"
   model: "base"
   language: "auto"
-  device: "auto"
+  device: "cpu"
   compute_type: "int8"
   cloud_fallback: false
 

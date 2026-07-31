@@ -4,18 +4,27 @@ OpenWakeWord detector provider for local wake word detection ("Vidya").
 
 import logging
 import numpy as np
-from typing import Optional
 from vidya.core.base import ServiceStatus, HealthStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import WakeWordProtocol
+from vidya.providers.registry import register_provider
 
 logger = logging.getLogger("vidya.providers.wakeword.openwakeword")
 
 
+@register_provider("wakeword", "openwakeword")
 class OpenWakeWordProvider(WakeWordProtocol):
     """
     OpenWakeWord local detector provider.
     Runs ONNX/TFLite models with high accuracy and low latency.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "OpenWakeWordProvider":
+        return cls(
+            model_name=config.wakeword.model_name,
+            threshold=config.wakeword.threshold,
+        )
 
     def __init__(self, model_name: str = "vidya", threshold: float = 0.5) -> None:
         self.model_name = model_name

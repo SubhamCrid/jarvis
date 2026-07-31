@@ -141,7 +141,7 @@ class VoiceAssistantCapability(BaseCapability):
                 await self.bus.publish(SpeechStarted())
 
         elif current_state == FSMState.LISTENING:
-            if not self.vad._in_speech and len(self._audio_buffer) == 0:
+            if not self.vad._in_speech:
                 if (
                     self._listening_start_time > 0
                     and (time.perf_counter() - self._listening_start_time > self.followup_timeout_s)
@@ -150,6 +150,8 @@ class VoiceAssistantCapability(BaseCapability):
                         f"Listening timeout ({self.followup_timeout_s}s) elapsed without speech. Returning to IDLE."
                     )
                     self._listening_start_time = 0.0
+                    self._audio_buffer.clear()
+                    self.vad.reset()
                     await self.fsm.transition_to(FSMState.IDLE)
                     return
 
@@ -161,6 +163,7 @@ class VoiceAssistantCapability(BaseCapability):
                 await self.fsm.transition_to(FSMState.TRANSCRIBING)
                 pcm_copy = bytes(self._audio_buffer)
                 self._audio_buffer.clear()
+                self.vad.reset()
                 self._listening_start_time = 0.0
                 self._active_task = asyncio.create_task(self._process_utterance(pcm_copy))
 

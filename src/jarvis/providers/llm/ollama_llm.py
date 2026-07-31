@@ -11,15 +11,27 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 import aiohttp
 
 from vidya.core.base import HealthStatus, ServiceStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import LLMProtocol
+from vidya.providers.registry import register_provider
 
 logger = logging.getLogger("vidya.providers.llm.ollama")
 
 
+@register_provider("llm", "ollama")
 class OllamaLLM(LLMProtocol):
     """
     Client provider connecting to a local Ollama service for streaming text generation.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "OllamaLLM":
+        return cls(
+            model=config.llm.model,
+            system_prompt=config.llm.system_prompt,
+            temperature=config.llm.temperature,
+            max_tokens=config.llm.max_tokens,
+        )
 
     def __init__(
         self,

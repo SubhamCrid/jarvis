@@ -7,16 +7,27 @@ import logging
 from pathlib import Path
 from typing import AsyncGenerator, Optional
 from vidya.core.base import ServiceStatus, HealthStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import TTSProtocol, AudioChunk
+from vidya.providers.registry import register_provider
 
 logger = logging.getLogger("vidya.providers.tts.piper")
 
 
+@register_provider("tts", "piper")
 class PiperTTS(TTSProtocol):
     """
     100% offline local neural Piper TTS provider.
     Yields AudioChunk PCM streams to the speaker.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "PiperTTS":
+        return cls(
+            voice=config.tts.voice,
+            sample_rate=config.audio.speaker_sample_rate,
+            speed=config.tts.speed,
+        )
 
     def __init__(
         self,

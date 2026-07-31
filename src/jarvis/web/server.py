@@ -119,6 +119,11 @@ class WebDashboardServer:
 
     async def _handle_trigger_wake(self, request: web.Request) -> web.Response:
         logger.info("Web dashboard triggered wake event.")
+        if self.orchestrator.voice_capability:
+            self.orchestrator.voice_capability._audio_buffer.clear()
+            self.orchestrator.voice_capability.vad.reset()
+            import time
+            self.orchestrator.voice_capability._listening_start_time = time.perf_counter()
         await self.orchestrator.bus.publish(WakeDetected(score=1.0, model_name="hey_vidya"))
         await self.orchestrator.fsm.transition_to(FSMState.WAKE_DETECTED)
         await self.orchestrator.fsm.transition_to(FSMState.LISTENING)

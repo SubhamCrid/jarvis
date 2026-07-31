@@ -5,9 +5,12 @@ Single owner of mic & speaker audio hardware resources. Supports dynamic microph
 
 import asyncio
 import logging
-from typing import List, Callable, Awaitable, Optional, Dict, Any
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.providers.base import AudioSessionProtocol, AudioChunk
+from typing import Any, Awaitable, Callable, Dict, List, Optional
+
+from vidya.core.base import HealthStatus, ServiceStatus
+from vidya.core.config.schema import AppConfig
+from vidya.providers.base import AudioChunk, AudioSessionProtocol
+from vidya.providers.registry import register_provider
 from vidya.utils.async_utils import BoundedQueue, safe_cancel_task
 
 logger = logging.getLogger("vidya.providers.audio.sounddevice_session")
@@ -15,11 +18,21 @@ logger = logging.getLogger("vidya.providers.audio.sounddevice_session")
 AudioSubscriber = Callable[[bytes], Awaitable[None]]
 
 
+@register_provider("audio", "sounddevice")
 class SoundDeviceAudioSession(AudioSessionProtocol):
     """
     Hardware SoundDevice AudioSessionManager.
     Single owner of hardware mic and speaker streams with device selection support.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "SoundDeviceAudioSession":
+        return cls(
+            sample_rate=config.audio.sample_rate,
+            speaker_sample_rate=config.audio.speaker_sample_rate,
+            channels=config.audio.channels,
+            chunk_size=config.audio.chunk_size,
+        )
 
     def __init__(
         self,

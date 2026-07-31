@@ -8,18 +8,26 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Optional
-from vidya.core.base import ServiceStatus, HealthStatus
+
+from vidya.core.base import HealthStatus, ServiceStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import STTProtocol
+from vidya.providers.registry import register_provider
 
 logger = logging.getLogger("vidya.providers.stt.whisper_cpp")
 
 
+@register_provider("stt", "whisper_cpp")
 class WhisperCppSTT(STTProtocol):
     """
     Local whisper.cpp STT provider.
     Runs whisper.cpp executable or Python bindings.
     Auto-downloads lightweight GGML model if missing.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "WhisperCppSTT":
+        return cls(model=config.stt.model)
 
     def __init__(
         self,
@@ -54,14 +62,15 @@ class WhisperCppSTT(STTProtocol):
                 self._pywhisper = whisper.Model(str(model_path))
                 self._status = ServiceStatus.RUNNING
                 logger.info(f"WhisperCppSTT loaded model {self.model} from {model_path}")
+                return True
             else:
-                logger.warning(f"Whisper model {model_path} not found. Running with speech fallback.")
-                self._status = ServiceStatus.DEGRADED
-            return True
+                logger.warning(f"Whisper model {model_path} not found.")
+                self._status = ServiceStatus.ERROR
+                return False
         except ImportError:
-            logger.info("pywhispercpp module not installed. Running with speech fallback.")
-            self._status = ServiceStatus.DEGRADED
-            return True
+            logger.warning("pywhispercpp module not installed.")
+            self._status = ServiceStatus.ERROR
+            return False
         except Exception as e:
             logger.error(f"Error initializing whisper.cpp: {e}")
             self._status = ServiceStatus.ERROR

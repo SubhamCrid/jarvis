@@ -5,11 +5,18 @@ MockTTS provider for fast testing without speech synthesis hardware/binary depen
 import asyncio
 from typing import AsyncGenerator
 from vidya.core.base import ServiceStatus, HealthStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import TTSProtocol, AudioChunk
+from vidya.providers.registry import register_provider
 
 
+@register_provider("tts", "mock")
 class MockTTS(TTSProtocol):
     """Synthetic TTS provider yielding AudioChunk objects."""
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "MockTTS":
+        return cls(sample_rate=config.audio.speaker_sample_rate)
 
     def __init__(self, sample_rate: int = 22050) -> None:
         self.sample_rate = sample_rate

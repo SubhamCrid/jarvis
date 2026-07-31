@@ -9,17 +9,25 @@ import logging
 import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 from vidya.core.base import HealthStatus, ServiceStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import StorageProtocol
+from vidya.providers.registry import register_provider
 
 logger = logging.getLogger("vidya.providers.storage.session_store")
 
 
+@register_provider("storage", "sqlite")
 class SQLiteSessionStore(StorageProtocol):
     """
     Unified SessionStore persisting conversation turns, task states, metrics, and recordings
     using non-blocking asynchronous executor threads for SQLite operations.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "SQLiteSessionStore":
+        return cls(db_path=f"{config.system.data_dir}/sessions/vidya.db")
 
     def __init__(self, db_path: str = "data/sessions/vidya.db") -> None:
         self.db_path = Path(db_path)

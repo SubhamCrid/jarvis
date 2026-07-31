@@ -1,6 +1,6 @@
 """
-Assistant orchestrator container responsible for dependency injection, lifecycle control,
-and task routing across voice capabilities and hardware providers.
+Assistant orchestrator container responsible for dynamic dependency injection,
+lifecycle control, and task routing across voice capabilities and hardware providers.
 """
 
 import logging
@@ -17,27 +17,14 @@ from vidya.core.fsm import VoiceFSM
 from vidya.core.observability import ObservabilityService
 from vidya.core.planner import SimplePlanner
 from vidya.core.task_manager import TaskManager
-
-from vidya.providers.audio.mock_audio import MockAudioSession
-from vidya.providers.audio.sounddevice_session import SoundDeviceAudioSession
-from vidya.providers.llm.mock_llm import MockLLM
-from vidya.providers.llm.ollama_llm import OllamaLLM
-from vidya.providers.storage.session_store import SQLiteSessionStore
-from vidya.providers.stt.faster_whisper_stt import FasterWhisperSTT
-from vidya.providers.stt.mock_stt import MockSTT
-from vidya.providers.stt.whisper_cpp_stt import WhisperCppSTT
-from vidya.providers.tts.edge_tts_provider import EdgeTTSProvider
-from vidya.providers.tts.mock_tts import MockTTS
-from vidya.providers.tts.piper_tts import PiperTTS
-from vidya.providers.wakeword.mock_wakeword import MockWakeWord
-from vidya.providers.wakeword.openwakeword_provider import OpenWakeWordProvider
+from vidya.providers import ProviderRegistry
 
 logger = logging.getLogger("vidya.orchestrator")
 
 
 class AssistantOrchestrator(BaseServiceProtocol):
     """
-    Central dependency orchestrator managing system provider instantiation,
+    Central dependency orchestrator managing dynamic system provider instantiation via ProviderRegistry,
     capability registration, lifecycle startup/shutdown, and task delegation.
     """
 
@@ -62,68 +49,36 @@ class AssistantOrchestrator(BaseServiceProtocol):
         self.voice_capability: Optional[VoiceAssistantCapability] = None
 
     async def initialize(self) -> bool:
-        """Instantiate providers based on system configuration and wire capability dependencies."""
-        logger.info("Initializing AssistantOrchestrator dependencies...")
+        """Dynamically instantiate providers via ProviderRegistry and wire capability dependencies."""
+        logger.info("Initializing AssistantOrchestrator dependencies via ProviderRegistry...")
 
-        if self.config.system.environment == "test":
-            self.audio_session = MockAudioSession(sample_rate=self.config.audio.sample_rate)
-        else:
-            self.audio_session = SoundDeviceAudioSession(
-                sample_rate=self.config.audio.sample_rate,
-                speaker_sample_rate=self.config.audio.speaker_sample_rate,
-            )
+        is_test = self.config.system.environment == "test"
 
-        if self.config.wakeword.provider == "mock" or self.config.system.environment == "test":
-            self.wakeword = MockWakeWord(threshold=self.config.wakeword.threshold)
-        else:
-            self.wakeword = OpenWakeWordProvider(
-                model_name=self.config.wakeword.model_name,
-                threshold=self.config.wakeword.threshold,
-            )
+        audio_name = "mock" if is_test else getattr(self.config.audio, "provider", "sounddevice")
+        wakeword_name = "mock" if (is_test or self.config.wakeword.provider == "mock") else self.config.wakeword.provider
+        stt_name = "mock" if (is_test or self.config.stt.provider == "mock") else self.config.stt.provider
+        llm_name = "mock" if (is_test or self.config.llm.provider == "mock") else self.config.llm.provider
+        tts_name = "mock" if (is_test or self.config.tts.provider == "mock") else self.config.tts.provider
+        storage_name = "sqlite"
 
-        if self.config.stt.provider == "mock" or self.config.system.environment == "test":
-            self.stt = MockSTT()
-        elif self.config.stt.provider == "whisper_cpp":
+        # Instantiate providers dynamically via ProviderRegistry
+        self.audio_session = ProviderRegistry.create("audio", audio_name, self.config)
+        self.wakeword = ProviderRegistry.create("wakeword", wakeword_name, self.config)
+
+        # STT fallback logic: try primary -> faster_whisper -> mock
+        try:
+            self.stt = ProviderRegistry.create("stt", stt_name, self.config)
+        except Exception as stt_err:
+            logger.warning(f"Primary STT provider '{stt_name}' failed to create ({stt_err}). Falling back to 'faster_whisper'.")
             try:
-                import pywhispercpp  # type: ignore
-                self.stt = WhisperCppSTT(model=self.config.stt.model)
-            except ImportError:
-                logger.info("pywhispercpp uninstalled; using FasterWhisperSTT backend.")
-                self.stt = FasterWhisperSTT(model=self.config.stt.model)
-        elif self.config.stt.provider == "faster_whisper":
-            self.stt = FasterWhisperSTT(model=self.config.stt.model)
-        else:
-            self.stt = FasterWhisperSTT(model=self.config.stt.model)
+                self.stt = ProviderRegistry.create("stt", "faster_whisper", self.config)
+            except Exception as fw_err:
+                logger.warning(f"Fallback STT 'faster_whisper' failed ({fw_err}). Falling back to 'mock'.")
+                self.stt = ProviderRegistry.create("stt", "mock", self.config)
 
-        if self.config.llm.provider == "mock" or self.config.system.environment == "test":
-            self.llm = MockLLM()
-        else:
-            self.llm = OllamaLLM(
-                model=self.config.llm.model,
-                system_prompt=self.config.llm.system_prompt,
-                temperature=self.config.llm.temperature,
-                max_tokens=self.config.llm.max_tokens,
-            )
-
-        if self.config.tts.provider == "edge_tts":
-            self.tts = EdgeTTSProvider(
-                voice=self.config.tts.voice,
-                sample_rate=self.config.audio.speaker_sample_rate,
-                speed=self.config.tts.speed,
-                auto_switch_voice=self.config.tts.auto_switch_voice,
-            )
-        elif self.config.tts.provider == "mock" or self.config.system.environment == "test":
-            self.tts = MockTTS(sample_rate=self.config.audio.speaker_sample_rate)
-        else:
-            self.tts = PiperTTS(
-                voice=self.config.tts.voice,
-                sample_rate=self.config.audio.speaker_sample_rate,
-                speed=self.config.tts.speed,
-            )
-
-        self.session_store = SQLiteSessionStore(
-            db_path=f"{self.config.system.data_dir}/sessions/vidya.db"
-        )
+        self.llm = ProviderRegistry.create("llm", llm_name, self.config)
+        self.tts = ProviderRegistry.create("tts", tts_name, self.config)
+        self.session_store = ProviderRegistry.create("storage", storage_name, self.config)
 
         self.voice_capability = VoiceAssistantCapability(
             fsm=self.fsm,
@@ -199,6 +154,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
             details={
                 "registered_capabilities": self.capability_registry.list_capabilities(),
                 "fsm_state": self.fsm.state.value if self.fsm else "N/A",
+                "registered_providers": ProviderRegistry.list_providers(),
             },
         )
 
@@ -214,4 +170,3 @@ class AssistantOrchestrator(BaseServiceProtocol):
         await self.executor.cancel()
         if self.voice_capability:
             await self.voice_capability.cancel()
-

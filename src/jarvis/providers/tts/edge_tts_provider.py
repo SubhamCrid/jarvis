@@ -6,16 +6,28 @@ import asyncio
 import logging
 from typing import AsyncGenerator
 from vidya.core.base import ServiceStatus, HealthStatus
+from vidya.core.config.schema import AppConfig
 from vidya.providers.base import TTSProtocol, AudioChunk
+from vidya.providers.registry import register_provider
 
 logger = logging.getLogger("vidya.providers.tts.edge_tts")
 
 
+@register_provider("tts", "edge_tts")
 class EdgeTTSProvider(TTSProtocol):
     """
     Microsoft Edge TTS provider using free neural voices.
     Yields MP3/PCM AudioChunk streams.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "EdgeTTSProvider":
+        return cls(
+            voice=config.tts.voice,
+            sample_rate=config.audio.speaker_sample_rate,
+            speed=config.tts.speed,
+            auto_switch_voice=config.tts.auto_switch_voice,
+        )
 
     def __init__(
         self,

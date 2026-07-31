@@ -4,9 +4,12 @@ MockAudioSession for synthetic audio input/output testing without physical hardw
 
 import asyncio
 import logging
-from typing import List, Callable, Awaitable, Optional
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.providers.base import AudioSessionProtocol, AudioChunk
+from typing import Awaitable, Callable, List, Optional
+
+from vidya.core.base import HealthStatus, ServiceStatus
+from vidya.core.config.schema import AppConfig
+from vidya.providers.base import AudioChunk, AudioSessionProtocol
+from vidya.providers.registry import register_provider
 from vidya.utils.async_utils import BoundedQueue
 
 logger = logging.getLogger("vidya.providers.audio.mock_audio")
@@ -14,10 +17,15 @@ logger = logging.getLogger("vidya.providers.audio.mock_audio")
 AudioSubscriber = Callable[[bytes], Awaitable[None]]
 
 
+@register_provider("audio", "mock")
 class MockAudioSession(AudioSessionProtocol):
     """
     Synthetic AudioSession implementation for CI/CD and non-hardware environments.
     """
+
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "MockAudioSession":
+        return cls(sample_rate=config.audio.sample_rate)
 
     def __init__(self, sample_rate: int = 16000) -> None:
         self.sample_rate = sample_rate
