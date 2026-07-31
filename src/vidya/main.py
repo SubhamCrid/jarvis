@@ -1,5 +1,5 @@
 """
-Vidya CLI Entry Point and Application Bootstrap.
+Vidya CLI Entry Point and Application Bootstrap with Integrated Web UI Dashboard.
 """
 
 import sys
@@ -12,12 +12,13 @@ from typing import Optional
 from vidya.utils.logger import setup_logger
 from vidya.core.config.loader import load_config
 from vidya.orchestrator import AssistantOrchestrator
+from vidya.web.server import WebDashboardServer
 
 logger = logging.getLogger("vidya.main")
 
 
-async def run_assistant(config_file: Optional[str] = None) -> None:
-    """Run Vidya desktop voice assistant."""
+async def run_assistant(config_file: Optional[str] = None, port: int = 8000) -> None:
+    """Run Vidya desktop voice assistant together with Web UI Dashboard."""
     config = load_config()
     setup_logger(log_level=config.system.log_level, log_dir=f"{config.system.data_dir}/logs")
     
@@ -25,6 +26,16 @@ async def run_assistant(config_file: Optional[str] = None) -> None:
     if not await orchestrator.initialize():
         logger.error("Failed to initialize Vidya Orchestrator.")
         return
+
+    # Start Web UI Dashboard Server
+    web_server = WebDashboardServer(orchestrator, port=port)
+    await web_server.start()
+
+    print("\n" + "=" * 60)
+    print("  VIDYA LOCAL VOICE ASSISTANT ENGINE")
+    print(f"  Web Dashboard Active at: http://localhost:{port}")
+    print(f"  Listening for wake word: '{config.wakeword.model_name}'")
+    print("=" * 60 + "\n")
 
     stop_event = asyncio.Event()
 
@@ -37,7 +48,6 @@ async def run_assistant(config_file: Optional[str] = None) -> None:
         try:
             loop.add_signal_handler(sig, signal_handler)
         except NotImplementedError:
-            # Signal handling on Windows event loop fallback
             pass
 
     await orchestrator.start()
@@ -47,6 +57,7 @@ async def run_assistant(config_file: Optional[str] = None) -> None:
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received.")
     finally:
+        await web_server.stop()
         await orchestrator.shutdown()
         logger.info("Vidya desktop assistant stopped gracefully.")
 
@@ -103,8 +114,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Vidya Local-First Desktop Voice Assistant")
     subparsers = parser.add_subparsers(dest="command", help="Sub-command to run")
 
-    run_parser = subparsers.add_parser("run", help="Run active voice assistant")
+    run_parser = subparsers.add_parser("run", help="Run active voice assistant with Web UI")
     run_parser.add_argument("--config", type=str, help="Path to config file")
+    run_parser.add_argument("--port", type=int, default=8000, help="Web UI port (default: 8000)")
+
+    ui_parser = subparsers.add_parser("ui", help="Launch Web UI Dashboard")
+    ui_parser.add_argument("--port", type=int, default=8000, help="Web UI port (default: 8000)")
 
     health_parser = subparsers.add_parser("check-health", help="Run system health checks")
     test_parser = subparsers.add_parser("test-pipeline", help="Run synthetic pipeline test")
@@ -113,8 +128,9 @@ def main() -> None:
 
     command = args.command or "run"
 
-    if command == "run":
-        asyncio.run(run_assistant(args.config))
+    if command in ("run", "ui"):
+        port = getattr(args, "port", 8000)
+        asyncio.run(run_assistant(getattr(args, "config", None), port=port))
     elif command == "check-health":
         asyncio.run(run_health_check())
     elif command == "test-pipeline":

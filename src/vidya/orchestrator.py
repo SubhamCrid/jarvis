@@ -29,10 +29,12 @@ from vidya.providers.wakeword.mock_wakeword import MockWakeWord
 from vidya.providers.wakeword.openwakeword_provider import OpenWakeWordProvider
 from vidya.providers.stt.mock_stt import MockSTT
 from vidya.providers.stt.whisper_cpp_stt import WhisperCppSTT
+from vidya.providers.stt.faster_whisper_stt import FasterWhisperSTT
 from vidya.providers.llm.mock_llm import MockLLM
 from vidya.providers.llm.ollama_llm import OllamaLLM
 from vidya.providers.tts.mock_tts import MockTTS
 from vidya.providers.tts.piper_tts import PiperTTS
+from vidya.providers.tts.edge_tts_provider import EdgeTTSProvider
 from vidya.providers.storage.session_store import SQLiteSessionStore
 
 logger = logging.getLogger("vidya.orchestrator")
@@ -93,8 +95,10 @@ class AssistantOrchestrator(BaseServiceProtocol):
         # STT
         if self.config.stt.provider == "mock" or self.config.system.environment == "test":
             self.stt = MockSTT()
+        elif self.config.stt.provider == "faster_whisper":
+            self.stt = FasterWhisperSTT(model=self.config.stt.model)
         else:
-            self.stt = WhisperCppSTT(model=self.config.stt.model, models_dir=self.config.system.data_dir + "/models")
+            self.stt = FasterWhisperSTT(model=self.config.stt.model)
 
         # LLM
         if self.config.llm.provider == "mock" or self.config.system.environment == "test":
@@ -103,7 +107,9 @@ class AssistantOrchestrator(BaseServiceProtocol):
             self.llm = OllamaLLM(model=self.config.llm.model, system_prompt=self.config.llm.system_prompt)
 
         # TTS
-        if self.config.tts.provider == "mock" or self.config.system.environment == "test":
+        if self.config.tts.provider == "edge_tts":
+            self.tts = EdgeTTSProvider(sample_rate=self.config.audio.speaker_sample_rate)
+        elif self.config.tts.provider == "mock" or self.config.system.environment == "test":
             self.tts = MockTTS(sample_rate=self.config.audio.speaker_sample_rate)
         else:
             self.tts = PiperTTS(voice=self.config.tts.voice, sample_rate=self.config.audio.speaker_sample_rate)

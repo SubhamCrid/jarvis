@@ -28,9 +28,12 @@ class OpenWakeWordProvider(WakeWordProtocol):
             import openwakeword  # type: ignore
             from openwakeword.model import Model  # type: ignore
             openwakeword.utils.download_models()
-            self._oww_model = Model(inference_framework="onnx")
+            try:
+                self._oww_model = Model(wakeword_models=[self.model_name], inference_framework="onnx")
+            except Exception:
+                self._oww_model = Model(inference_framework="onnx")
             self._status = ServiceStatus.RUNNING
-            logger.info("OpenWakeWordProvider initialized successfully.")
+            logger.info(f"OpenWakeWordProvider initialized successfully with model '{self.model_name}'.")
             return True
         except ImportError:
             logger.warning("openwakeword package not installed. Running in degraded mode.")

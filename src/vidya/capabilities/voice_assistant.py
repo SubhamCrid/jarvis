@@ -120,7 +120,6 @@ class VoiceAssistantCapability(BaseCapability):
             if vad_res["speech_ended"]:
                 await self.bus.publish(SpeechEnded(duration_ms=vad_res["silence_ms"]))
                 await self.fsm.transition_to(FSMState.TRANSCRIBING)
-                # Dispatch transcription task
                 pcm_copy = bytes(self._audio_buffer)
                 self._audio_buffer.clear()
                 self._active_task = asyncio.create_task(self._process_utterance(pcm_copy))
@@ -139,7 +138,7 @@ class VoiceAssistantCapability(BaseCapability):
                 self.vad.reset()
 
     async def _process_utterance(self, pcm_bytes: bytes) -> None:
-        """Full pipeline: STT -> LLM token stream -> Sentence Chunker -> TTS -> Speaker."""
+        """Full audio pipeline: STT -> LLM token stream -> Sentence Chunker -> TTS -> Speaker."""
         self._is_cancelled = False
         session_id = "default_session"
         start_time = time.perf_counter()
@@ -153,11 +152,31 @@ class VoiceAssistantCapability(BaseCapability):
             self.observability.log_timeline_event("STT_COMPLETE", duration_ms=stt_dt)
 
             if not transcript or not transcript.strip():
-                logger.info("Empty transcript received. Returning to IDLE.")
+                logger.info("Empty transcript received from STT. Returning to IDLE.")
                 await self.fsm.transition_to(FSMState.IDLE)
                 return
 
-            logger.info(f"User utterance transcript: '{transcript}'")
+            await self.process_text_prompt(transcript, session_id=session_id, start_time=start_time)
+
+        except asyncio.CancelledError:
+            self._is_cancelled = True
+            logger.info("Utterance processing cancelled.")
+        except Exception as e:
+            logger.error(f"Error in utterance pipeline: {e}", exc_info=True)
+            await self.bus.publish(ErrorOccurred(component="voice_assistant", message=str(e), exception=e))
+            await self.fsm.transition_to(FSMState.ERROR)
+        finally:
+            if not self._is_cancelled and self.fsm.state != FSMState.ERROR:
+                await self.fsm.transition_to(FSMState.IDLE)
+
+    async def process_text_prompt(self, transcript: str, session_id: str = "default_session", start_time: Optional[float] = None) -> None:
+        """Direct text prompt execution bypassing STT (used for UI prompt testing or direct commands)."""
+        self._is_cancelled = False
+        if start_time is None:
+            start_time = time.perf_counter()
+
+        try:
+            logger.info(f"Processing text prompt: '{transcript}'")
             await self.bus.publish(TranscriptReady(text=transcript))
             await self.session_store.save_turn(session_id, "user", transcript)
 
@@ -165,10 +184,9 @@ class VoiceAssistantCapability(BaseCapability):
             await self.fsm.transition_to(FSMState.THINKING)
             history = await self.session_store.get_history(session_id, limit=10)
             
-            # Format history for LLM
             formatted_history = [
                 {"role": turn["role"], "content": turn["content"]}
-                for turn in history[:-1]  # Exclude current user prompt
+                for turn in history[:-1]
             ]
 
             t_llm_start = time.perf_counter()
@@ -190,14 +208,12 @@ class VoiceAssistantCapability(BaseCapability):
                 full_response_text += token
                 await self.bus.publish(TokenGenerated(token=token, accumulated_text=full_response_text))
 
-                # Sentence chunker splitting tokens into speech sentences
                 sentence_chunks = self.chunker.add_token(token)
                 for sentence in sentence_chunks:
                     if self._is_cancelled:
                         break
                     await self._synthesize_and_speak(sentence)
 
-            # Flush remaining sentence buffer
             remaining_sentence = self.chunker.flush()
             if remaining_sentence and not self._is_cancelled:
                 await self._synthesize_and_speak(remaining_sentence)
@@ -211,9 +227,9 @@ class VoiceAssistantCapability(BaseCapability):
 
         except asyncio.CancelledError:
             self._is_cancelled = True
-            logger.info("Utterance processing cancelled.")
+            logger.info("Text prompt processing cancelled.")
         except Exception as e:
-            logger.error(f"Error in utterance pipeline: {e}", exc_info=True)
+            logger.error(f"Error processing text prompt: {e}", exc_info=True)
             await self.bus.publish(ErrorOccurred(component="voice_assistant", message=str(e), exception=e))
             await self.fsm.transition_to(FSMState.ERROR)
         finally:
@@ -249,7 +265,11 @@ class VoiceAssistantCapability(BaseCapability):
         """Execute action passed from TaskExecutor."""
         if action == "process_voice":
             pcm = params.get("pcm_data", b"")
-            await self._process_utterance(pcm)
+            if pcm:
+                await self._process_utterance(pcm)
+            else:
+                prompt = params.get("prompt", "Hello")
+                await self.process_text_prompt(prompt, session_id=session_id)
             return "Voice processed successfully"
         return "Unknown action"
 

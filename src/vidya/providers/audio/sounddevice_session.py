@@ -1,11 +1,11 @@
 """
 Real SoundDevice AudioSessionManager for hardware microphone input and speaker output streams.
-Single owner of mic & speaker audio hardware resources.
+Single owner of mic & speaker audio hardware resources. Supports dynamic microphone device selection.
 """
 
 import asyncio
 import logging
-from typing import List, Callable, Awaitable, Optional
+from typing import List, Callable, Awaitable, Optional, Dict, Any
 from vidya.core.base import ServiceStatus, HealthStatus
 from vidya.providers.base import AudioSessionProtocol, AudioChunk
 from vidya.utils.async_utils import BoundedQueue, safe_cancel_task
@@ -18,8 +18,7 @@ AudioSubscriber = Callable[[bytes], Awaitable[None]]
 class SoundDeviceAudioSession(AudioSessionProtocol):
     """
     Hardware SoundDevice AudioSessionManager.
-    Single owner of hardware mic and speaker streams.
-    Applies bounded queue backpressure and immediate barge-in flushing.
+    Single owner of hardware mic and speaker streams with device selection support.
     """
 
     def __init__(
@@ -27,20 +26,24 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
         sample_rate: int = 16000,
         speaker_sample_rate: int = 22050,
         channels: int = 1,
-        chunk_size: int = 1024
+        chunk_size: int = 1024,
+        device_index: Optional[int] = None
     ) -> None:
         self.sample_rate = sample_rate
         self.speaker_sample_rate = speaker_sample_rate
         self.channels = channels
         self.chunk_size = chunk_size
+        self.device_index = device_index
 
         self._is_listening: bool = False
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
         self._subscribers: List[AudioSubscriber] = []
         self._playback_queue: BoundedQueue[AudioChunk] = BoundedQueue(maxsize=50)
 
-        self._sd_stream = None
+        self._sd = None
+        self._input_stream = None
         self._playback_task: Optional[asyncio.Task] = None
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
 
     def subscribe_mic(self, subscriber: AudioSubscriber) -> None:
         if subscriber not in self._subscribers:
@@ -50,7 +53,41 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
         if subscriber in self._subscribers:
             self._subscribers.remove(subscriber)
 
+    def list_input_devices(self) -> List[Dict[str, Any]]:
+        """List all available microphone input devices on system."""
+        if not self._sd:
+            return []
+        try:
+            devices = self._sd.query_devices()
+            input_devices = []
+            for idx, dev in enumerate(devices):
+                if dev.get("max_input_channels", 0) > 0:
+                    input_devices.append({
+                        "index": idx,
+                        "name": dev.get("name"),
+                        "channels": dev.get("max_input_channels"),
+                        "default_sample_rate": int(dev.get("default_samplerate", 16000))
+                    })
+            return input_devices
+        except Exception as e:
+            logger.error(f"Error querying audio devices: {e}")
+            return []
+
+    async def set_input_device(self, device_index: int) -> bool:
+        """Switch active microphone device by index."""
+        was_listening = self._is_listening
+        if was_listening:
+            await self.stop_listening()
+
+        self.device_index = device_index
+        logger.info(f"Selected microphone device index: {device_index}")
+
+        if was_listening:
+            await self.start_listening()
+        return True
+
     async def initialize(self) -> bool:
+        self._loop = asyncio.get_running_loop()
         try:
             import sounddevice as sd  # type: ignore
             self._sd = sd
@@ -67,13 +104,47 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
             self._status = ServiceStatus.ERROR
             return False
 
+    def _mic_callback(self, indata, frames, time_info, status):
+        """Callback invoked by sounddevice C thread for every microphone PCM audio block."""
+        if status:
+            logger.debug(f"Sounddevice input status: {status}")
+        if self._is_listening and indata is not None and self._loop:
+            pcm_bytes = bytes(indata)
+            for sub in self._subscribers:
+                asyncio.run_coroutine_threadsafe(sub(pcm_bytes), self._loop)
+
     async def start_listening(self) -> None:
         if self._is_listening:
             return
-        self._is_listening = True
-        logger.info("Hardware microphone stream enabled.")
+        if not self._sd:
+            logger.warning("Sounddevice not available for mic recording.")
+            return
+
+        try:
+            self._input_stream = self._sd.RawInputStream(
+                samplerate=self.sample_rate,
+                blocksize=self.chunk_size,
+                device=self.device_index,
+                channels=self.channels,
+                dtype="int16",
+                callback=self._mic_callback
+            )
+            self._input_stream.start()
+            self._is_listening = True
+            dev_name = self.device_index if self.device_index is not None else "default"
+            logger.info(f"Hardware microphone stream started (device: {dev_name}, {self.sample_rate}Hz).")
+        except Exception as e:
+            logger.error(f"Error starting hardware microphone stream: {e}")
+            self._is_listening = False
 
     async def stop_listening(self) -> None:
+        if self._input_stream:
+            try:
+                self._input_stream.stop()
+                self._input_stream.close()
+            except Exception as e:
+                logger.error(f"Error closing input stream: {e}")
+            self._input_stream = None
         self._is_listening = False
         logger.info("Hardware microphone stream disabled.")
 
@@ -92,13 +163,12 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
             chunk = await self._playback_queue.get(timeout=0.1)
             if chunk and chunk.data:
                 try:
-                    if hasattr(self, "_sd") and self._sd:
+                    if self._sd:
                         import numpy as np
                         audio_np = np.frombuffer(chunk.data, dtype=np.int16)
                         self._sd.play(audio_np, samplerate=chunk.sample_rate)
                         await asyncio.sleep(len(audio_np) / chunk.sample_rate)
                     else:
-                        # Fallback delay for synthetic playback
                         duration = len(chunk.data) / (2 * chunk.sample_rate)
                         await asyncio.sleep(duration)
                 except Exception as e:
@@ -110,6 +180,7 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
             message="SoundDevice session status",
             details={
                 "listening": self._is_listening,
+                "device_index": self.device_index,
                 "subscribers_count": len(self._subscribers),
                 "queue_size": self._playback_queue.size()
             }
