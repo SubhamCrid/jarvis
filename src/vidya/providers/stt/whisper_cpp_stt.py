@@ -23,7 +23,7 @@ class WhisperCppSTT(STTProtocol):
 
     def __init__(
         self,
-        model: str = "tiny.en",
+        model: str = "base",
         models_dir: str = "data/models",
         whisper_bin: Optional[str] = None
     ) -> None:

@@ -37,6 +37,7 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
 
         self._is_listening: bool = False
         self._is_playing: bool = False
+        self._stop_requested: bool = False
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
         self._subscribers: List[AudioSubscriber] = []
         self._playback_queue: BoundedQueue[AudioChunk] = BoundedQueue(maxsize=50)
@@ -166,11 +167,14 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
         logger.info("Hardware microphone stream disabled.")
 
     async def play_audio_chunk(self, chunk: AudioChunk) -> None:
-        """Queue AudioChunk for speaker playback."""
+        """Queue AudioChunk for speaker playback (unless playback stopped)."""
+        if self._stop_requested:
+            return
         await self._playback_queue.put(chunk)
 
     async def stop_playback(self) -> None:
         """Instantly flush playback queue on barge-in interrupt."""
+        self._stop_requested = True
         cleared = self._playback_queue.clear()
         self._is_playing = False
         if self._output_stream:
@@ -182,14 +186,33 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
             self._output_stream = None
         logger.info(f"Barge-in interrupt: cleared {cleared} queued audio chunks from speaker.")
 
+    async def wait_for_playback_complete(self, timeout_s: float = 10.0) -> None:
+        """Wait until speaker playback queue is empty and active playback completes."""
+        t0 = asyncio.get_running_loop().time()
+        while (not self._playback_queue.empty() or self._is_playing) and not self._stop_requested:
+            if asyncio.get_running_loop().time() - t0 > timeout_s:
+                logger.warning("wait_for_playback_complete timed out.")
+                break
+            await asyncio.sleep(0.03)
+
+    def reset_stop_flag(self) -> None:
+        """Reset stop requested flag before starting new playback stream."""
+        self._stop_requested = False
+
     async def _playback_loop(self) -> None:
         """Background loop reading from playback queue and outputting to speaker."""
         loop = asyncio.get_running_loop()
         current_sr = None
 
         while self._status in (ServiceStatus.RUNNING, ServiceStatus.DEGRADED):
+            if self._stop_requested:
+                self._playback_queue.clear()
+                self._is_playing = False
+                await asyncio.sleep(0.02)
+                continue
+
             chunk = await self._playback_queue.get(timeout=0.1)
-            if chunk and chunk.data:
+            if chunk and chunk.data and not self._stop_requested:
                 self._is_playing = True
                 try:
                     if self._sd:
@@ -213,8 +236,11 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
                             current_sr = sr
 
                         def _write_pcm():
-                            if self._output_stream and self._output_stream.active:
-                                self._output_stream.write(audio_np)
+                            if not self._stop_requested and self._output_stream and self._output_stream.active:
+                                try:
+                                    self._output_stream.write(audio_np)
+                                except Exception:
+                                    pass
 
                         await loop.run_in_executor(None, _write_pcm)
                     else:

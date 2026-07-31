@@ -134,22 +134,39 @@ class SQLiteSessionStore(StorageProtocol):
         }
 
     async def get_history(self, session_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+        if limit <= 0:
+            return []
         history = []
         conn = self._get_connection()
+        ignored_phrases = [
+            "please ensure ollama is active",
+            "i can hear you clearly",
+            "model response timed out",
+            "check if your computer is under high load",
+            "[blank_audio]",
+            "subtitles by",
+            "thanks for watching"
+        ]
         try:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT role, content, metadata, created_at FROM turns WHERE session_id = ? ORDER BY turn_id DESC LIMIT ?",
-                (session_id, limit)
+                (session_id, limit * 2)
             )
             rows = cursor.fetchall()
             for r in reversed(rows):
+                content_lower = r["content"].lower()
+                # Skip error noise turns from context history
+                if any(p in content_lower for p in ignored_phrases):
+                    continue
                 history.append({
                     "role": r["role"],
                     "content": r["content"],
                     "metadata": json.loads(r["metadata"]) if r["metadata"] else {},
                     "created_at": r["created_at"]
                 })
+                if len(history) >= limit:
+                    break
         finally:
             conn.close()
         return history

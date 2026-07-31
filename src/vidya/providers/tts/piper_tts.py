@@ -22,11 +22,13 @@ class PiperTTS(TTSProtocol):
         self,
         voice: str = "en_US-lessac-medium",
         models_dir: str = "data/models",
-        sample_rate: int = 22050
+        sample_rate: int = 22050,
+        speed: float = 1.15
     ) -> None:
         self.voice = voice
         self.models_dir = Path(models_dir)
         self.sample_rate = sample_rate
+        self.speed = speed
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
         self._cancelled: bool = False
 

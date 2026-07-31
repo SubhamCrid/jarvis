@@ -55,6 +55,8 @@ class WebDashboardServer:
         self.app.router.add_post("/api/simulate-voice", self._handle_simulate_voice)
         self.app.router.add_get("/api/audio-devices", self._handle_list_audio_devices)
         self.app.router.add_post("/api/select-device", self._handle_select_audio_device)
+        self.app.router.add_get("/api/settings", self._handle_get_settings)
+        self.app.router.add_post("/api/settings", self._handle_update_settings)
         self.app.router.add_get("/api/health", self._handle_health)
         self.app.router.add_get("/api/metrics", self._handle_metrics)
 
@@ -113,6 +115,8 @@ class WebDashboardServer:
             await self.broadcast({"type": "llm_chunk", "token": event.token})
         elif isinstance(event, SentenceReady):
             await self.broadcast({"type": "sentence", "sentence": event.sentence})
+        elif isinstance(event, TaskCancelled):
+            await self.broadcast({"type": "task_cancelled", "reason": event.reason})
         
         # Always push metrics update
         await self.broadcast({
@@ -121,8 +125,8 @@ class WebDashboardServer:
         })
 
     async def _handle_trigger_wake(self, request: web.Request) -> web.Response:
-        logger.info("Web UI triggered wake event ('hey_jarvis')")
-        await self.orchestrator.bus.publish(WakeDetected(score=1.0, model_name="hey_jarvis"))
+        logger.info("Web UI triggered wake event ('hey_vidya')")
+        await self.orchestrator.bus.publish(WakeDetected(score=1.0, model_name="hey_vidya"))
         await self.orchestrator.fsm.transition_to(FSMState.WAKE_DETECTED)
         await self.orchestrator.fsm.transition_to(FSMState.LISTENING)
         return web.json_response({"status": "wake_triggered"})
@@ -157,6 +161,33 @@ class WebDashboardServer:
             await self.orchestrator.audio_session.set_input_device(device_index)
             return web.json_response({"status": "selected", "device_index": device_index})
         return web.json_response({"status": "error", "message": "Invalid device_index"}, status=400)
+
+    async def _handle_get_settings(self, request: web.Request) -> web.Response:
+        silence_ms = getattr(self.orchestrator.config.vad, "silence_duration_ms", 1800)
+        voice = getattr(self.orchestrator.config.tts, "voice", "en-US-AvaMultilingualNeural")
+        speed = getattr(self.orchestrator.config.tts, "speed", 1.15)
+        return web.json_response({
+            "silence_duration_ms": silence_ms,
+            "tts_voice": voice,
+            "tts_speed": speed
+        })
+
+    async def _handle_update_settings(self, request: web.Request) -> web.Response:
+        data = await request.json()
+        silence_ms = data.get("silence_duration_ms")
+        tts_voice = data.get("tts_voice")
+        tts_speed = data.get("tts_speed")
+
+        updated = self.orchestrator.update_settings(
+            silence_duration_ms=silence_ms,
+            tts_voice=tts_voice,
+            tts_speed=tts_speed
+        )
+
+        return web.json_response({
+            "status": "updated",
+            "settings": updated
+        })
 
     async def _handle_health(self, request: web.Request) -> web.Response:
         health = await self.orchestrator.health()

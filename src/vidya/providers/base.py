@@ -43,6 +43,11 @@ class AudioSessionProtocol(BaseServiceProtocol):
         """Instantly halt active speaker playback buffer on barge-in."""
         pass
 
+    @abstractmethod
+    async def wait_for_playback_complete(self, timeout_s: float = 10.0) -> None:
+        """Wait until active speaker playback finishes playing all queued chunks."""
+        pass
+
 
 class WakeWordProtocol(BaseServiceProtocol):
     """Wake Word Detector engine protocol."""

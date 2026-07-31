@@ -111,15 +111,29 @@ class AssistantOrchestrator(BaseServiceProtocol):
         if self.config.llm.provider == "mock" or self.config.system.environment == "test":
             self.llm = MockLLM()
         else:
-            self.llm = OllamaLLM(model=self.config.llm.model, system_prompt=self.config.llm.system_prompt)
+            self.llm = OllamaLLM(
+                model=self.config.llm.model,
+                system_prompt=self.config.llm.system_prompt,
+                temperature=self.config.llm.temperature,
+                max_tokens=self.config.llm.max_tokens
+            )
 
         # TTS
         if self.config.tts.provider == "edge_tts":
-            self.tts = EdgeTTSProvider(sample_rate=self.config.audio.speaker_sample_rate)
+            self.tts = EdgeTTSProvider(
+                voice=self.config.tts.voice,
+                sample_rate=self.config.audio.speaker_sample_rate,
+                speed=self.config.tts.speed,
+                auto_switch_voice=self.config.tts.auto_switch_voice
+            )
         elif self.config.tts.provider == "mock" or self.config.system.environment == "test":
             self.tts = MockTTS(sample_rate=self.config.audio.speaker_sample_rate)
         else:
-            self.tts = PiperTTS(voice=self.config.tts.voice, sample_rate=self.config.audio.speaker_sample_rate)
+            self.tts = PiperTTS(
+                voice=self.config.tts.voice,
+                sample_rate=self.config.audio.speaker_sample_rate,
+                speed=self.config.tts.speed
+            )
 
         # Storage
         self.session_store = SQLiteSessionStore(
@@ -138,7 +152,8 @@ class AssistantOrchestrator(BaseServiceProtocol):
             session_store=self.session_store,
             observability=self.observability,
             vad_threshold=self.config.vad.energy_threshold,
-            silence_duration_ms=self.config.vad.silence_duration_ms
+            silence_duration_ms=self.config.vad.silence_duration_ms,
+            max_history_turns=self.config.session.max_history_turns
         )
 
         # Initialize Voice Capability
@@ -168,6 +183,32 @@ class AssistantOrchestrator(BaseServiceProtocol):
             session_id=session_id
         )
         return result
+
+    def update_settings(
+        self,
+        silence_duration_ms: Optional[int] = None,
+        tts_voice: Optional[str] = None,
+        tts_speed: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """Modularity helper: update active runtime configuration in single place."""
+        updated = {}
+        if self.voice_capability and silence_duration_ms is not None:
+            self.voice_capability.vad.silence_duration_ms = int(silence_duration_ms)
+            self.config.vad.silence_duration_ms = int(silence_duration_ms)
+            updated["silence_duration_ms"] = int(silence_duration_ms)
+
+        if self.tts:
+            if tts_voice:
+                setattr(self.tts, "voice", str(tts_voice))
+                self.config.tts.voice = str(tts_voice)
+                updated["tts_voice"] = str(tts_voice)
+            if tts_speed is not None:
+                setattr(self.tts, "speed", float(tts_speed))
+                self.config.tts.speed = float(tts_speed)
+                updated["tts_speed"] = float(tts_speed)
+
+        logger.info(f"Updated runtime settings: {updated}")
+        return updated
 
     async def health(self) -> HealthStatus:
         return HealthStatus(

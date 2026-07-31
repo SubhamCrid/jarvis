@@ -17,18 +17,39 @@ class EdgeTTSProvider(TTSProtocol):
     Yields MP3/PCM AudioChunk streams.
     """
 
-    def __init__(self, voice: str = "en-US-AvaNeural", sample_rate: int = 24000) -> None:
+    def __init__(
+        self,
+        voice: str = "en-US-AvaMultilingualNeural",
+        sample_rate: int = 24000,
+        speed: float = 1.15,
+        auto_switch_voice: bool = False
+    ) -> None:
         self.voice = voice
         self.sample_rate = sample_rate
+        self.speed = speed
+        self.auto_switch_voice = auto_switch_voice
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
         self._cancelled: bool = False
+
+    def _get_rate_str(self) -> str:
+        """Format speed float (e.g. 1.25) into EdgeTTS rate string (e.g. '+25%')."""
+        pct = int(round((self.speed - 1.0) * 100))
+        return f"{pct:+d}%"
+
+    def _select_voice_for_text(self, text: str) -> str:
+        """Select appropriate voice based on text script if auto_switch_voice is enabled."""
+        if not self.auto_switch_voice or not text:
+            return self.voice
+        if any('\u0900' <= char <= '\u097F' for char in text):
+            return "hi-IN-SwaraNeural"
+        return self.voice
 
     async def initialize(self) -> bool:
         try:
             import edge_tts  # type: ignore
             self._edge_tts = edge_tts
             self._status = ServiceStatus.RUNNING
-            logger.info(f"EdgeTTSProvider initialized with voice {self.voice}")
+            logger.info(f"EdgeTTSProvider initialized (voice: {self.voice}, speed: {self.speed}x, rate: {self._get_rate_str()})")
             return True
         except ImportError:
             logger.warning("edge-tts package not found. Degrading status.")
@@ -41,11 +62,13 @@ class EdgeTTSProvider(TTSProtocol):
             return
 
         try:
-            communicate = self._edge_tts.Communicate(text, self.voice)
+            active_voice = self._select_voice_for_text(text)
+            rate_str = self._get_rate_str()
+            communicate = self._edge_tts.Communicate(text, active_voice, rate=rate_str)
             mp3_buffer = bytearray()
             async for chunk in communicate.stream():
                 if self._cancelled:
-                    logger.info("EdgeTTS synthesis stream cancelled.")
+                    logger.info("EdgeTTS synthesis stream cancelled during downloading.")
                     break
                 if chunk["type"] == "audio" and chunk["data"]:
                     mp3_buffer.extend(chunk["data"])
@@ -61,7 +84,7 @@ class EdgeTTSProvider(TTSProtocol):
                         stderr=subprocess.DEVNULL
                     )
                     pcm_data, _ = p.communicate(input=bytes(mp3_buffer))
-                    if pcm_data:
+                    if pcm_data and not self._cancelled:
                         # Chunk PCM data into 4096-byte blocks
                         chunk_size = 4096
                         for i in range(0, len(pcm_data), chunk_size):
@@ -70,8 +93,9 @@ class EdgeTTSProvider(TTSProtocol):
                             block = pcm_data[i:i + chunk_size]
                             yield AudioChunk(data=block, sample_rate=self.sample_rate)
                 except Exception as ff_err:
-                    logger.warning(f"ffmpeg PCM decoding failed, yielding raw MP3 chunks: {ff_err}")
-                    yield AudioChunk(data=bytes(mp3_buffer), sample_rate=self.sample_rate)
+                    if not self._cancelled:
+                        logger.warning(f"ffmpeg PCM decoding failed, yielding raw MP3 chunks: {ff_err}")
+                        yield AudioChunk(data=bytes(mp3_buffer), sample_rate=self.sample_rate)
 
         except asyncio.CancelledError:
             self._cancelled = True
@@ -83,7 +107,7 @@ class EdgeTTSProvider(TTSProtocol):
         return HealthStatus(
             status=self._status,
             message="EdgeTTS provider status",
-            details={"voice": self.voice}
+            details={"voice": self.voice, "speed": self.speed}
         )
 
     async def shutdown(self) -> None:

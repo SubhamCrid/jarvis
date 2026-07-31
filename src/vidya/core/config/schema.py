@@ -22,21 +22,21 @@ class AudioConfig(BaseModel):
 
 class WakeWordConfig(BaseModel):
     provider: str = Field(default="openwakeword")
-    model_name: str = Field(default="vidya")
+    model_name: str = Field(default="hey_jarvis")
     threshold: float = Field(default=0.5)
     sample_rate: int = Field(default=16000)
 
 
 class VADConfig(BaseModel):
     energy_threshold: float = Field(default=0.02)
-    silence_duration_ms: int = Field(default=700)
+    silence_duration_ms: int = Field(default=1800)
     speech_pad_ms: int = Field(default=300)
 
 
 class STTConfig(BaseModel):
     provider: str = Field(default="whisper_cpp")
-    model: str = Field(default="base.en")
-    language: str = Field(default="en")
+    model: str = Field(default="base")
+    language: str = Field(default="auto")
     device: str = Field(default="auto")
     compute_type: str = Field(default="int8")
     cloud_fallback: bool = Field(default=False)
@@ -44,25 +44,26 @@ class STTConfig(BaseModel):
 
 class LLMConfig(BaseModel):
     provider: str = Field(default="ollama")
-    model: str = Field(default="llama3.2:3b")
+    model: str = Field(default="qwen3.5:4b")
     temperature: float = Field(default=0.7)
-    max_tokens: int = Field(default=512)
+    max_tokens: int = Field(default=1024)
     stream: bool = Field(default=True)
     system_prompt: str = Field(
-        default="You are Vidya, a helpful, concise, local-first desktop voice assistant."
+        default="You are Vidya, a helpful local voice assistant. Keep all responses brief (1 to 2 sentences maximum), clear, and natural for speech synthesis."
     )
 
 
 class TTSConfig(BaseModel):
-    provider: str = Field(default="piper")
-    voice: str = Field(default="en_US-lessac-medium")
+    provider: str = Field(default="edge_tts")
+    voice: str = Field(default="en-US-AvaMultilingualNeural")
     speaker_id: int = Field(default=0)
-    speed: float = Field(default=1.0)
+    speed: float = Field(default=1.15)
+    auto_switch_voice: bool = Field(default=False)
     chunk_queue_size: int = Field(default=20)
 
 
 class SessionConfig(BaseModel):
-    max_history_turns: int = Field(default=20)
+    max_history_turns: int = Field(default=0)
     save_audio_logs: bool = Field(default=False)
 
 

@@ -72,8 +72,9 @@ class VoiceAssistantCapability(BaseCapability):
         session_store: StorageProtocol,
         observability: ObservabilityService,
         vad_threshold: float = 0.02,
-        silence_duration_ms: int = 700,
-        followup_timeout_s: float = 6.0
+        silence_duration_ms: int = 1800,
+        followup_timeout_s: float = 6.0,
+        max_history_turns: int = 0
     ) -> None:
         self.fsm = fsm
         self.bus = bus
@@ -85,6 +86,7 @@ class VoiceAssistantCapability(BaseCapability):
         self.session_store = session_store
         self.observability = observability
         self.followup_timeout_s = followup_timeout_s
+        self.max_history_turns = max_history_turns
 
         self.vad = VADEngine(energy_threshold=vad_threshold, silence_duration_ms=silence_duration_ms)
         self.chunker = SentenceChunker()
@@ -160,28 +162,27 @@ class VoiceAssistantCapability(BaseCapability):
 
         # 3. Barge-in / Interruption check during SPEAKING state
         elif current_state == FSMState.SPEAKING:
-            # 800ms refractory grace period after speech start
-            if time.perf_counter() - self._speaking_start_time < 0.8:
+            # 500ms refractory grace period after speech start
+            if time.perf_counter() - self._speaking_start_time < 0.5:
                 return
 
             # Suppress false barge-in from speaker audio playback feedback loop
             is_playing = getattr(self.audio_session, "is_playing", False)
             rms = self.vad.calculate_rms(pcm_data)
-            if is_playing and rms < self.vad.energy_threshold * 3.5:
+            if is_playing and rms < self.vad.energy_threshold * 1.8:
                 self._consecutive_speech_count = 0
                 return
 
             vad_res = self.vad.process_chunk(pcm_data)
             if vad_res["is_speech"]:
                 self._consecutive_speech_count += 1
-                if self._consecutive_speech_count >= 3:
+                if self._consecutive_speech_count >= 2:
                     logger.info("Barge-in interrupt detected! Halting active speech synthesis.")
                     self.observability.increment_counter("cancellation_count")
                     await self.cancel()
                     await self.bus.publish(TaskCancelled(reason="Barge-in user speech"))
                     await self.fsm.transition_to(FSMState.LISTENING)
                     self._audio_buffer.clear()
-                    self._audio_buffer.extend(pcm_data)
                     self.vad.reset()
                     self._listening_start_time = time.perf_counter()
                     self._consecutive_speech_count = 0
@@ -203,10 +204,15 @@ class VoiceAssistantCapability(BaseCapability):
 
             clean_text = transcript.strip() if transcript else ""
             lower_text = clean_text.lower()
-            ignored_hallucinations = {"[blank_audio]", "(silence)", "thank you.", "subtitles by", "thanks for watching!"}
+            ignored_hallucinations = {
+                "[blank_audio]", "(silence)", "thank you.", "subtitles by", "thanks for watching!",
+                "i can hear you clearly", "please ensure ollama is active", "i am processing your request",
+                "model response timed out", "check if your computer is under high load",
+                "then then then"
+            }
 
             if not clean_text or any(h in lower_text for h in ignored_hallucinations):
-                logger.info(f"Empty or hallucinated transcript ('{clean_text}') received from STT. Returning to IDLE.")
+                logger.info(f"Empty, hallucinated, or fallback echo transcript ('{clean_text}') received from STT. Returning to IDLE.")
                 await self.fsm.transition_to(FSMState.IDLE)
                 return
 
@@ -223,12 +229,17 @@ class VoiceAssistantCapability(BaseCapability):
     async def process_text_prompt(self, transcript: str, session_id: str = "default_session", start_time: Optional[float] = None) -> None:
         """Direct text prompt execution bypassing STT (used for UI prompt testing or direct commands)."""
         self._is_cancelled = False
+        if hasattr(self.audio_session, "reset_stop_flag"):
+            self.audio_session.reset_stop_flag()
+
         if start_time is None:
             start_time = time.perf_counter()
 
         cleaned_prompt = _strip_wake_word_prefixes(transcript)
         if not cleaned_prompt:
             cleaned_prompt = "Hello! How can I help you today?"
+
+        fallback_occurred = False
 
         try:
             logger.info(f"Processing text prompt: '{cleaned_prompt}' (raw: '{transcript}')")
@@ -237,18 +248,22 @@ class VoiceAssistantCapability(BaseCapability):
 
             # Step B: LLM Generation
             await self.fsm.transition_to(FSMState.THINKING)
-            history = await self.session_store.get_history(session_id, limit=10)
-            
-            formatted_history = [
-                {"role": turn["role"], "content": turn["content"]}
-                for turn in history[:-1]
-            ]
+            if self.max_history_turns > 0:
+                history = await self.session_store.get_history(session_id, limit=self.max_history_turns)
+                # History already includes current user prompt (from save_turn above), so exclude the last turn for formatted_history
+                formatted_history = [
+                    {"role": turn["role"], "content": turn["content"]}
+                    for turn in history[:-1]
+                ] if len(history) > 1 else []
+            else:
+                formatted_history = []
 
             t_llm_start = time.perf_counter()
             first_token_received = False
             full_response_text = ""
 
             self.chunker.reset()
+            max_sentences_per_turn = 5
 
             async for token in self.llm.generate_stream(cleaned_prompt, formatted_history):
                 if self._is_cancelled:
@@ -269,11 +284,26 @@ class VoiceAssistantCapability(BaseCapability):
                         break
                     await self._synthesize_and_speak(sentence)
 
-            remaining_sentence = self.chunker.flush()
-            if remaining_sentence and not self._is_cancelled:
-                await self._synthesize_and_speak(remaining_sentence)
+                # Cap max sentences per response turn to prevent runaway infinite babbling
+                if self.chunker._sentence_count >= max_sentences_per_turn:
+                    logger.info(f"Reached maximum sentences limit ({max_sentences_per_turn}) per turn. Ending streaming.")
+                    break
 
-            if full_response_text and not self._is_cancelled:
+            if self.chunker._sentence_count < max_sentences_per_turn:
+                remaining_sentence = self.chunker.flush()
+                if remaining_sentence and not self._is_cancelled:
+                    await self._synthesize_and_speak(remaining_sentence)
+
+            if not full_response_text.strip() and not self._is_cancelled:
+                fallback_msg = "I heard you clearly! How can I help you today?"
+                full_response_text = fallback_msg
+                await self._synthesize_and_speak(fallback_msg)
+
+            if getattr(self.llm, "has_error", False) or "please ensure ollama is active" in full_response_text.lower():
+                fallback_occurred = True
+
+            # Save assistant turn ONLY if genuine non-fallback response and turn wasn't cancelled
+            if full_response_text and not self._is_cancelled and not fallback_occurred:
                 await self.session_store.save_turn(session_id, "assistant", full_response_text)
 
             total_dt = (time.perf_counter() - start_time) * 1000.0
@@ -291,13 +321,17 @@ class VoiceAssistantCapability(BaseCapability):
             self._audio_buffer.clear()
             self.vad.reset()
             if not self._is_cancelled and self.fsm.state != FSMState.ERROR:
-                logger.info("Turn complete. Entering LISTENING state for follow-up conversation...")
-                self._listening_start_time = time.perf_counter()
-                await self.fsm.transition_to(FSMState.LISTENING)
+                if fallback_occurred:
+                    logger.info("LLM fallback error occurred. Returning to IDLE state to prevent feedback loop.")
+                    await self.fsm.transition_to(FSMState.IDLE)
+                else:
+                    logger.info("Turn complete. Entering LISTENING state for follow-up conversation...")
+                    self._listening_start_time = time.perf_counter()
+                    await self.fsm.transition_to(FSMState.LISTENING)
 
     async def _synthesize_and_speak(self, sentence: str) -> None:
         """Synthesize sentence to TTS AudioChunks and output to Speaker."""
-        if not sentence or self._is_cancelled:
+        if not sentence or self._is_cancelled or getattr(self.audio_session, "_stop_requested", False):
             return
 
         self._speaking_start_time = time.perf_counter()
@@ -309,7 +343,8 @@ class VoiceAssistantCapability(BaseCapability):
         first_chunk = True
 
         async for audio_chunk in self.tts.synthesize_stream(sentence):
-            if self._is_cancelled:
+            if self._is_cancelled or getattr(self.audio_session, "_stop_requested", False):
+                logger.info("Synthesis and speaking aborted due to cancellation.")
                 break
 
             if first_chunk:
@@ -319,6 +354,9 @@ class VoiceAssistantCapability(BaseCapability):
 
             await self.bus.publish(AudioChunkReady(audio_bytes=audio_chunk.data))
             await self.audio_session.play_audio_chunk(audio_chunk)
+
+        if not self._is_cancelled and hasattr(self.audio_session, "wait_for_playback_complete"):
+            await self.audio_session.wait_for_playback_complete()
 
         await self.bus.publish(PlaybackFinished())
         self._audio_buffer.clear()
@@ -361,4 +399,5 @@ class VoiceAssistantCapability(BaseCapability):
         await self.audio_session.stop_playback()
         await self.tts.cancel()
         await self.llm.cancel()
+        await self.bus.publish(TaskCancelled(reason="Barge-in / User Cancellation"))
         await safe_cancel_task(self._active_task)

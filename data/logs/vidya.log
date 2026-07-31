@@ -856,3 +856,611 @@
 [2026-07-31 21:50:03] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
 [2026-07-31 21:50:03] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
 [2026-07-31 21:50:03] [INFO] [vidya.main] Vidya desktop assistant stopped gracefully.
+[2026-07-31 21:50:04] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-07-31 21:50:04] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-07-31 21:50:04] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-07-31 21:50:05] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-07-31 21:50:06] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-07-31 21:50:06] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'tiny.en' on cpu (int8)...
+[2026-07-31 21:50:07] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'tiny.en'.
+[2026-07-31 21:50:08] [INFO] [vidya.providers.llm.ollama] Configured model 'qwen3.5:4b' not found. Auto-selecting installed model 'granite3.1-dense:2b'.
+[2026-07-31 21:50:08] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'granite3.1-dense:2b'
+[2026-07-31 21:50:08] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaNeural
+[2026-07-31 21:50:08] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-07-31 21:50:08] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-07-31 21:50:08] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-07-31 21:50:08] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-07-31 21:50:08] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-07-31 21:50:08] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-07-31 21:50:08] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-07-31 21:50:16] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-07-31 21:50:18] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_jarvis')
+[2026-07-31 21:50:18] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-07-31 21:50:18] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-07-31 21:50:20] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-07-31 21:50:20] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Hey, can you hear me right now?'
+[2026-07-31 21:50:20] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Hey, can you hear me right now?' (raw: 'Hey, can you hear me right now?')
+[2026-07-31 21:50:20] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-07-31 21:50:24] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-07-31 21:50:33] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-07-31 21:50:33] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-07-31 21:50:39] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-07-31 21:50:39] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Can I help me?  Look up.'
+[2026-07-31 21:50:39] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Can I help me?  Look up.' (raw: 'Can I help me?  Look up.')
+[2026-07-31 21:50:39] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-07-31 21:50:40] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-07-31 21:50:46] [INFO] [vidya.web.server] Web UI triggered interrupt / barge-in
+[2026-07-31 21:50:46] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 50 queued audio chunks from speaker.
+[2026-07-31 21:50:46] [INFO] [vidya.capabilities.voice_assistant] Text prompt processing cancelled.
+[2026-07-31 21:50:46] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-07-31 21:50:47] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-07-31 21:51:19] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-07-31 21:51:21] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_jarvis')
+[2026-07-31 21:51:21] [WARNING] [vidya.core.fsm] Invalid FSM transition: LISTENING -> WAKE_DETECTED
+[2026-07-31 21:51:24] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-07-31 21:51:24] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-07-31 21:51:24] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-07-31 21:51:27] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-07-31 21:51:32] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'I'm going to hear me right now.  We can hear me right now.'
+[2026-07-31 21:51:32] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'I'm going to hear me right now.  We can hear me right now.' (raw: 'I'm going to hear me right now.  We can hear me right now.')
+[2026-07-31 21:51:32] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-07-31 21:51:33] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-07-31 21:51:45] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-07-31 21:51:45] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-07-31 21:51:54] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-07-31 21:51:54] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Pretty bad actually but can you help me?'
+[2026-07-31 21:51:54] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Pretty bad actually but can you help me?' (raw: 'Pretty bad actually but can you help me?')
+[2026-07-31 21:51:54] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-07-31 21:51:55] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-07-31 21:52:06] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-07-31 21:52:06] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-07-31 21:52:11] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-07-31 21:52:11] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Can you speak in Hindi?'
+[2026-07-31 21:52:11] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Can you speak in Hindi?' (raw: 'Can you speak in Hindi?')
+[2026-07-31 21:52:11] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-07-31 21:52:12] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-07-31 21:52:22] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-07-31 21:52:22] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-07-31 21:52:25] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-07-31 21:52:26] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Speak something again in Hindi.'
+[2026-07-31 21:52:26] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Speak something again in Hindi.' (raw: 'Speak something again in Hindi.')
+[2026-07-31 21:52:26] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-07-31 21:52:27] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-07-31 21:52:28] [ERROR] [vidya.providers.tts.edge_tts] Error in EdgeTTS synthesis: No audio was received. Please verify that your parameters are correct.
+[2026-07-31 21:52:32] [ERROR] [vidya.providers.tts.edge_tts] Error in EdgeTTS synthesis: No audio was received. Please verify that your parameters are correct.
+[2026-07-31 21:52:32] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-07-31 21:52:32] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-07-31 21:52:39] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-07-31 21:54:39] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-07-31 21:54:39] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-07-31 21:54:39] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-07-31 21:54:39] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> STOPPING
+[2026-07-31 21:54:39] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-07-31 21:54:39] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-07-31 21:54:39] [INFO] [vidya.main] Vidya desktop assistant stopped gracefully.
+[2026-07-31 22:00:48] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-07-31 22:00:48] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-07-31 22:00:48] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-07-31 22:00:48] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-07-31 22:00:51] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-07-31 22:00:51] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-07-31 22:01:20] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-07-31 22:01:20] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'qwen3.5:4b'
+[2026-07-31 22:01:20] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-07-31 22:01:20] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-07-31 22:01:20] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-07-31 22:01:20] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-07-31 22:01:20] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-07-31 22:01:20] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-07-31 22:01:20] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-07-31 22:01:20] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-07-31 22:01:21] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-07-31 22:01:33] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_jarvis')
+[2026-07-31 22:01:33] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-07-31 22:01:33] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-07-31 22:01:38] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-07-31 22:01:39] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-07-31 22:01:39] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-07-31 22:01:39] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-07-31 22:01:39] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Hey, can you hear me right now?'
+[2026-07-31 22:01:39] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Hey, can you hear me right now?' (raw: 'Hey, can you hear me right now?')
+[2026-07-31 22:01:39] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-07-31 22:02:17] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-07-31 22:02:17] [INFO] [vidya.providers.llm.ollama] Ollama LLM generation task cancelled.
+[2026-07-31 22:02:17] [INFO] [vidya.capabilities.voice_assistant] Text prompt processing cancelled.
+[2026-08-01 02:53:56] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 02:53:56] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 02:53:56] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 02:53:57] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 02:54:05] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 02:54:07] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 02:54:09] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 02:54:12] [WARNING] [vidya.providers.llm.ollama] Could not connect to Ollama at http://localhost:11434: Cannot connect to host localhost:11434 ssl:default [The remote computer refused the network connection]. Degrading status.
+[2026-08-01 02:54:12] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-08-01 02:54:12] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 02:54:12] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 02:54:12] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 02:54:12] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 02:54:12] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 02:54:13] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 02:54:13] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 02:54:14] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 02:54:17] [INFO] [vidya.providers.wakeword.openwakeword] Wake word detected! (hey_jarvis: score=0.68)
+[2026-08-01 02:54:17] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 02:54:17] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 02:54:19] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 02:54:19] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 02:54:19] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 02:54:22] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 02:54:23] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Can you hear me right now?'
+[2026-08-01 02:54:23] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Can you hear me right now?' (raw: 'Can you hear me right now?')
+[2026-08-01 02:54:23] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 02:54:25] [ERROR] [vidya.providers.llm.ollama] Error streaming from Ollama: Cannot connect to host localhost:11434 ssl:default [The remote computer refused the network connection]
+[2026-08-01 02:54:25] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 02:54:31] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 02:54:31] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 02:54:42] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 02:54:43] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Do you think it's active?'
+[2026-08-01 02:54:43] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Do you think it's active?' (raw: 'Do you think it's active?')
+[2026-08-01 02:54:43] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 02:54:45] [ERROR] [vidya.providers.llm.ollama] Error streaming from Ollama: Cannot connect to host localhost:11434 ssl:default [The remote computer refused the network connection]
+[2026-08-01 02:54:45] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 02:54:49] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 02:54:49] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 02:55:36] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 02:55:48] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'What are your capabilities right now?'
+[2026-08-01 02:55:48] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'What are your capabilities right now?' (raw: 'What are your capabilities right now?')
+[2026-08-01 02:55:48] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 02:55:50] [ERROR] [vidya.providers.llm.ollama] Error streaming from Ollama: Cannot connect to host localhost:11434 ssl:default [The remote computer refused the network connection]
+[2026-08-01 02:55:50] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 02:55:54] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 02:55:54] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 02:56:03] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 02:56:17] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'abhi aapka kibbit Quiet'
+[2026-08-01 02:56:17] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'abhi aapka kibbit Quiet' (raw: 'abhi aapka kibbit Quiet')
+[2026-08-01 02:56:17] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 02:56:19] [ERROR] [vidya.providers.llm.ollama] Error streaming from Ollama: Cannot connect to host localhost:11434 ssl:default [The remote computer refused the network connection]
+[2026-08-01 02:56:19] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 02:56:23] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 02:56:23] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 02:57:46] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 02:58:05] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'C'est quand y'a eu me right now.  In the next video we will show you how to make your own'
+[2026-08-01 02:58:05] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'C'est quand y'a eu me right now.  In the next video we will show you how to make your own' (raw: 'C'est quand y'a eu me right now.  In the next video we will show you how to make your own')
+[2026-08-01 02:58:05] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 02:58:24] [INFO] [vidya.web.server] Web UI triggered interrupt / barge-in
+[2026-08-01 02:58:24] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 02:58:24] [INFO] [vidya.providers.llm.ollama] Ollama LLM generation task cancelled.
+[2026-08-01 02:58:24] [INFO] [vidya.capabilities.voice_assistant] Text prompt processing cancelled.
+[2026-08-01 02:58:24] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> LISTENING
+[2026-08-01 02:58:27] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 02:58:29] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'So can you hear me right now?'
+[2026-08-01 02:58:29] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'So can you hear me right now?' (raw: 'So can you hear me right now?')
+[2026-08-01 02:58:29] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 02:58:49] [ERROR] [vidya.providers.llm.ollama] Error streaming from Ollama: 
+[2026-08-01 02:58:49] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 02:58:55] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 02:58:55] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 02:59:03] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 02:59:06] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Hi.  Hi.  Hi.  Hi.'
+[2026-08-01 02:59:06] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Hi.  Hi.  Hi.  Hi.' (raw: 'Hi.  Hi.  Hi.  Hi.')
+[2026-08-01 02:59:06] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 02:59:26] [ERROR] [vidya.providers.llm.ollama] Error streaming from Ollama: 
+[2026-08-01 02:59:26] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 02:59:30] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 02:59:30] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:00:04] [INFO] [vidya.web.server] Web UI submitted prompt: 'hi'
+[2026-08-01 03:00:04] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'hi' (raw: 'hi')
+[2026-08-01 03:00:04] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> THINKING
+[2026-08-01 03:00:10] [INFO] [vidya.web.server] Web UI triggered interrupt / barge-in
+[2026-08-01 03:00:10] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:00:10] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> LISTENING
+[2026-08-01 03:00:10] [INFO] [vidya.providers.llm.ollama] Ollama LLM generation stream cancelled.
+[2026-08-01 03:00:10] [INFO] [vidya.capabilities.voice_assistant] Follow-up listening window (6.0s) timed out without speech. Transitioning to IDLE.
+[2026-08-01 03:00:10] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> IDLE
+[2026-08-01 03:00:10] [INFO] [vidya.providers.wakeword.openwakeword] Wake word detected! (hey_jarvis: score=0.89)
+[2026-08-01 03:00:10] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:00:10] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:00:14] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:00:14] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:00:15] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:00:16] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:00:20] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:00:20] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 03:00:20] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 03:00:35] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:00:37] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:00:37] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:00:37] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:00:37] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:00:39] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:00:39] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:00:40] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:00:41] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'qwen3.5:4b'
+[2026-08-01 03:00:41] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-08-01 03:00:41] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:00:41] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:00:41] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:00:41] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:00:41] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:00:41] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:00:41] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:00:45] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:00:47] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:00:47] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:00:48] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:00:48] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:01:01] [INFO] [vidya.providers.wakeword.openwakeword] Wake word detected! (hey_jarvis: score=0.99)
+[2026-08-01 03:01:01] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:01:01] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:01:05] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:01:06] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Can you hear me right now?'
+[2026-08-01 03:01:06] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Can you hear me right now?' (raw: 'Can you hear me right now?')
+[2026-08-01 03:01:06] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:02:18] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:02:20] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:02:20] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:03:58] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:03:59] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:03:59] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:03:59] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:04:00] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:04:01] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:04:01] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:04:02] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:04:02] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'qwen3.5:4b'
+[2026-08-01 03:04:03] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-08-01 03:04:03] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:04:03] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:04:03] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:04:03] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:04:03] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:04:03] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:04:03] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:04:08] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:04:10] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_jarvis')
+[2026-08-01 03:04:10] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:04:10] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:04:13] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:04:14] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'So, what are your capabilities?'
+[2026-08-01 03:04:14] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'So, what are your capabilities?' (raw: 'So, what are your capabilities?')
+[2026-08-01 03:04:14] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:04:18] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:04:20] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:04:20] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:04:34] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:04:35] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'What can you do?  What can you do?'
+[2026-08-01 03:04:35] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'What can you do?  What can you do?' (raw: 'What can you do?  What can you do?')
+[2026-08-01 03:04:35] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:04:38] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:04:38] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 03:04:38] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 03:04:39] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:04:40] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:04:40] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:05:01] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:08:47] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-08-01 03:08:47] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:08:47] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:08:47] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> STOPPING
+[2026-08-01 03:08:47] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:08:47] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:08:47] [INFO] [vidya.main] Vidya desktop assistant stopped gracefully.
+[2026-08-01 03:08:49] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:08:49] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:08:49] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:08:49] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:08:50] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:08:51] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:08:52] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:08:52] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'qwen3.5:4b'
+[2026-08-01 03:08:52] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-08-01 03:08:52] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:08:52] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:08:52] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:08:52] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:08:52] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:08:53] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:08:53] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:08:57] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:08:59] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:08:59] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 03:08:59] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 03:09:01] [INFO] [vidya.providers.wakeword.openwakeword] Wake word detected! (hey_jarvis: score=0.68)
+[2026-08-01 03:09:01] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:09:01] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:09:04] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:09:06] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Can you hear me right now?'
+[2026-08-01 03:09:06] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Can you hear me right now?' (raw: 'Can you hear me right now?')
+[2026-08-01 03:09:06] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:09:15] [INFO] [vidya.providers.llm.ollama] Reasoning model output thinking without content. Extracted response: '4.  **Refine for Constraints:**...'
+[2026-08-01 03:09:15] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:09:18] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:09:18] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:09:35] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:19:53] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-08-01 03:19:53] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:19:53] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:19:53] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> STOPPING
+[2026-08-01 03:19:53] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:19:53] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:19:53] [INFO] [vidya.main] Vidya desktop assistant stopped gracefully.
+[2026-08-01 03:19:59] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:19:59] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:19:59] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:20:00] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:20:01] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:20:01] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:20:03] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:20:03] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'qwen3.5:4b'
+[2026-08-01 03:20:03] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-08-01 03:20:03] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:20:03] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:20:03] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:20:03] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:20:03] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:20:03] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:20:03] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:20:07] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:20:12] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:20:12] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 03:20:12] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 03:20:13] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_jarvis')
+[2026-08-01 03:20:13] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:20:13] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:20:20] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:20:21] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Okay, can you hear me right now?'
+[2026-08-01 03:20:21] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Okay, can you hear me right now?' (raw: 'Okay, can you hear me right now?')
+[2026-08-01 03:20:21] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:20:47] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:20:49] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:20:49] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:21:00] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:21:02] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'What are your capabilities?'
+[2026-08-01 03:21:02] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'What are your capabilities?' (raw: 'What are your capabilities?')
+[2026-08-01 03:21:02] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:21:19] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:21:21] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:21:21] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:22:22] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:22:30] [INFO] [vidya.capabilities.voice_assistant] Empty, hallucinated, or fallback echo transcript ('') received from STT. Returning to IDLE.
+[2026-08-01 03:22:30] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> IDLE
+[2026-08-01 03:24:53] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:24:55] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:24:55] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:24:55] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:24:55] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:24:57] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:24:57] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:24:59] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:24:59] [INFO] [vidya.providers.llm.ollama] Configured model 'hermes3:3b' not found. Auto-selecting installed model 'qwen3.5:4b'.
+[2026-08-01 03:24:59] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'qwen3.5:4b'
+[2026-08-01 03:24:59] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-08-01 03:24:59] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:24:59] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:24:59] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:24:59] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:24:59] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:24:59] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:24:59] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:25:04] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:25:10] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_jarvis')
+[2026-08-01 03:25:10] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:25:10] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:25:12] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:25:14] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:25:14] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 03:25:14] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 03:25:14] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Hey, can you hear me right now?'
+[2026-08-01 03:25:14] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Hey, can you hear me right now?' (raw: 'Hey, can you hear me right now?')
+[2026-08-01 03:25:14] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:25:32] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:25:38] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:25:38] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:25:44] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:25:45] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'What are your capabilities?'
+[2026-08-01 03:25:45] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'What are your capabilities?' (raw: 'What are your capabilities?')
+[2026-08-01 03:25:45] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:26:07] [INFO] [vidya.providers.llm.ollama] Reasoning model output thinking without content. Extracting fallback response.
+[2026-08-01 03:26:07] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:28:54] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:28:54] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:29:18] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:29:21] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-08-01 03:29:21] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 50 queued audio chunks from speaker.
+[2026-08-01 03:29:21] [INFO] [vidya.capabilities.voice_assistant] Text prompt processing cancelled.
+[2026-08-01 03:29:21] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:29:21] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> STOPPING
+[2026-08-01 03:29:21] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:29:21] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:29:21] [INFO] [vidya.main] Vidya desktop assistant stopped gracefully.
+[2026-08-01 03:30:07] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:30:07] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:30:07] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:30:07] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:30:08] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:30:09] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:30:10] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:30:10] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'hermes3:3b'
+[2026-08-01 03:30:11] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized with voice en-US-AvaMultilingualNeural
+[2026-08-01 03:30:11] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:30:11] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:30:11] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:30:11] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:30:11] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:30:11] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:30:11] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:30:23] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:30:25] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_jarvis')
+[2026-08-01 03:30:25] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:30:25] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:30:29] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:30:29] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 03:30:29] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 03:30:40] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:30:41] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Hey, can you hear me right now?  Hey, can you hear me right now?'
+[2026-08-01 03:30:41] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Hey, can you hear me right now?  Hey, can you hear me right now?' (raw: 'Hey, can you hear me right now?  Hey, can you hear me right now?')
+[2026-08-01 03:30:41] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:30:42] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:30:58] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:30:58] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:31:07] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:31:09] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'What tools do you have at your disposal?'
+[2026-08-01 03:31:09] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'What tools do you have at your disposal?' (raw: 'What tools do you have at your disposal?')
+[2026-08-01 03:31:09] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:31:10] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:31:22] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:31:22] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:31:46] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:31:47] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Who is the current president of the US?'
+[2026-08-01 03:31:47] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Who is the current president of the US?' (raw: 'Who is the current president of the US?')
+[2026-08-01 03:31:47] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:31:48] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:31:57] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:31:57] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:32:13] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:32:14] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Google it for me Google it for me'
+[2026-08-01 03:32:14] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Google it for me Google it for me' (raw: 'Google it for me Google it for me')
+[2026-08-01 03:32:14] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:32:15] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:32:32] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:32:32] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:32:34] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:32:35] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Can you speak in Hindi?'
+[2026-08-01 03:32:35] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Can you speak in Hindi?' (raw: 'Can you speak in Hindi?')
+[2026-08-01 03:32:35] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:32:36] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:32:53] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:32:53] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:32:56] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:32:58] [INFO] [vidya.capabilities.voice_assistant] Empty, hallucinated, or fallback echo transcript ('') received from STT. Returning to IDLE.
+[2026-08-01 03:32:58] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> IDLE
+[2026-08-01 03:33:04] [INFO] [vidya.providers.wakeword.openwakeword] Wake word detected! (hey_jarvis: score=0.83)
+[2026-08-01 03:33:04] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:33:04] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:33:08] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:33:09] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'अपको हैंदिया तियो किया?'
+[2026-08-01 03:33:09] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'अपको हैंदिया तियो किया?' (raw: 'अपको हैंदिया तियो किया?')
+[2026-08-01 03:33:09] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:33:11] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:33:28] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:33:28] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:35:13] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:35:53] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: '.  .  .'
+[2026-08-01 03:35:53] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: '.  .  .' (raw: '.  .  .')
+[2026-08-01 03:35:53] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:35:55] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:36:36] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:36:36] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:37:47] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:37:56] [INFO] [vidya.web.server] Web UI triggered interrupt / barge-in
+[2026-08-01 03:37:56] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:37:56] [INFO] [vidya.capabilities.voice_assistant] Utterance processing cancelled.
+[2026-08-01 03:37:56] [WARNING] [vidya.core.fsm] Invalid FSM transition: TRANSCRIBING -> LISTENING
+[2026-08-01 03:37:58] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:38:01] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-08-01 03:38:01] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:38:01] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:38:01] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> STOPPING
+[2026-08-01 03:38:01] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:38:01] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:38:01] [INFO] [vidya.main] Vidya desktop assistant stopped gracefully.
+[2026-08-01 03:44:16] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:44:16] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:44:16] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:44:17] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:44:18] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:44:18] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:44:19] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:44:20] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'hermes3:3b'
+[2026-08-01 03:44:20] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized (voice: en-US-AvaMultilingualNeural, speed: 1.15x, rate: +15%)
+[2026-08-01 03:44:20] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:44:20] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:44:20] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:44:20] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:44:20] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:44:20] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:44:20] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:44:31] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:44:36] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_vidya')
+[2026-08-01 03:44:36] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:44:36] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:44:41] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:44:42] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Hey can you hear me right now?'
+[2026-08-01 03:44:42] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Hey can you hear me right now?' (raw: 'Hey can you hear me right now?')
+[2026-08-01 03:44:42] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:44:44] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-08-01 03:44:44] [INFO] [vidya.providers.audio.sounddevice_session] Selected microphone device index: 1
+[2026-08-01 03:44:44] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: 1, 16000Hz).
+[2026-08-01 03:44:46] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:44:51] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:44:51] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:45:03] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:45:04] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'You are pretty fast right now.  What changes did to me?'
+[2026-08-01 03:45:04] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'You are pretty fast right now.  What changes did to me?' (raw: 'You are pretty fast right now.  What changes did to me?')
+[2026-08-01 03:45:04] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:45:05] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:45:20] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:45:20] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:45:28] [INFO] [vidya.orchestrator] Updated runtime settings: {'tts_voice': 'en-US-AndrewMultilingualNeural'}
+[2026-08-01 03:45:35] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:45:36] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'Which LLM are you?'
+[2026-08-01 03:45:36] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'Which LLM are you?' (raw: 'Which LLM are you?')
+[2026-08-01 03:45:36] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:45:37] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:45:53] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:45:53] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:45:59] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:46:00] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'So can you do so can you?'
+[2026-08-01 03:46:00] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'So can you do so can you?' (raw: 'So can you do so can you?')
+[2026-08-01 03:46:00] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:46:01] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:46:18] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:46:18] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:49:26] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.
+[2026-08-01 03:49:28] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-08-01 03:49:28] [INFO] [vidya.orchestrator] pywhispercpp module not installed. Falling back to FasterWhisperSTT.
+[2026-08-01 03:49:28] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-08-01 03:49:28] [INFO] [vidya.providers.audio.sounddevice_session] SoundDeviceAudioSession initialized successfully.
+[2026-08-01 03:49:30] [INFO] [vidya.providers.wakeword.openwakeword] OpenWakeWordProvider initialized successfully with model 'hey_jarvis'.
+[2026-08-01 03:49:30] [INFO] [vidya.providers.stt.faster_whisper] Loading Faster-Whisper model 'base' on cpu (int8)...
+[2026-08-01 03:49:31] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisperSTT initialized successfully with model 'base'.
+[2026-08-01 03:49:32] [INFO] [vidya.providers.llm.ollama] OllamaLLM connected to http://localhost:11434 with active model 'hermes3:3b'
+[2026-08-01 03:49:32] [INFO] [vidya.providers.tts.edge_tts] EdgeTTSProvider initialized (voice: en-US-AvaMultilingualNeural, speed: 1.15x, rate: +15%)
+[2026-08-01 03:49:32] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-08-01 03:49:32] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-08-01 03:49:32] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-08-01 03:49:32] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-08-01 03:49:32] [INFO] [vidya.web.server] Vidya Web Dashboard active at http://localhost:8000
+[2026-08-01 03:49:32] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream started (device: default, 16000Hz).
+[2026-08-01 03:49:32] [INFO] [vidya.orchestrator] Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...
+[2026-08-01 03:49:35] [INFO] [vidya.web.server] New Web UI WebSocket client connected.
+[2026-08-01 03:49:36] [INFO] [vidya.web.server] Web UI triggered wake event ('hey_vidya')
+[2026-08-01 03:49:36] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> WAKE_DETECTED
+[2026-08-01 03:49:36] [INFO] [vidya.core.fsm] [FSM] State transition: WAKE_DETECTED -> LISTENING
+[2026-08-01 03:49:41] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:49:42] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'So can you hear me right now?'
+[2026-08-01 03:49:42] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'So can you hear me right now?' (raw: 'So can you hear me right now?')
+[2026-08-01 03:49:42] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:49:42] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:49:48] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:49:48] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:49:55] [INFO] [vidya.web.server] Web UI triggered interrupt / barge-in
+[2026-08-01 03:49:55] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-08-01 03:50:00] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:50:01] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'So can I barge you in any time and you will hand me?'
+[2026-08-01 03:50:01] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'So can I barge you in any time and you will hand me?' (raw: 'So can I barge you in any time and you will hand me?')
+[2026-08-01 03:50:01] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:50:02] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:50:08] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:50:08] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:50:11] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:50:13] [INFO] [vidya.providers.stt.faster_whisper] FasterWhisper STT transcribed: 'so if you can hear me right now any time'
+[2026-08-01 03:50:13] [INFO] [vidya.capabilities.voice_assistant] Processing text prompt: 'so if you can hear me right now any time' (raw: 'so if you can hear me right now any time')
+[2026-08-01 03:50:13] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> THINKING
+[2026-08-01 03:50:13] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-08-01 03:50:23] [INFO] [vidya.capabilities.voice_assistant] Turn complete. Entering LISTENING state for follow-up conversation...
+[2026-08-01 03:50:23] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> LISTENING
+[2026-08-01 03:50:34] [INFO] [vidya.core.fsm] [FSM] State transition: LISTENING -> TRANSCRIBING
+[2026-08-01 03:50:36] [INFO] [vidya.capabilities.voice_assistant] Empty, hallucinated, or fallback echo transcript ('') received from STT. Returning to IDLE.
+[2026-08-01 03:50:36] [INFO] [vidya.core.fsm] [FSM] State transition: TRANSCRIBING -> IDLE
+[2026-08-01 03:52:16] [INFO] [vidya.web.server] Web UI WebSocket client disconnected.

@@ -90,3 +90,20 @@ async def test_voice_capability_barge_in():
     assert orchestrator.observability.get_metrics_summary()["counters"]["cancellation_count"] == 1
 
     await orchestrator.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_voice_capability_llm_fallback_transitions_to_idle():
+    config = load_config(user_overrides={"system": {"environment": "test"}})
+    orchestrator = AssistantOrchestrator(config)
+    await orchestrator.initialize()
+
+    # Simulate LLM provider error state
+    orchestrator.voice_capability.llm.has_error = True
+
+    await orchestrator.voice_capability.process_text_prompt("Hello", session_id="test_fallback_sess")
+
+    # Should transition to IDLE instead of LISTENING to avoid infinite retry loop
+    assert orchestrator.fsm.state == FSMState.IDLE
+
+    await orchestrator.shutdown()

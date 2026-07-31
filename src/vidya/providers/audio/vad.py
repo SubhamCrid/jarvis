@@ -18,7 +18,7 @@ class VADEngine:
     def __init__(
         self,
         energy_threshold: float = 0.02,
-        silence_duration_ms: int = 700,
+        silence_duration_ms: int = 1800,
         sample_rate: int = 16000,
         chunk_size: int = 1024
     ) -> None:

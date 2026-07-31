@@ -21,6 +21,8 @@ class SentenceChunker:
     def __init__(self, min_sentence_len: int = 15) -> None:
         self.min_sentence_len = min_sentence_len
         self._buffer: str = ""
+        self._last_sentence: str = ""
+        self._sentence_count: int = 0
 
     def add_token(self, token: str) -> List[str]:
         """
@@ -39,6 +41,12 @@ class SentenceChunker:
             self._buffer = self._buffer[end_pos:]
 
             if sentence:
+                # Anti-repetition guard: skip identical duplicate sentences
+                if sentence.lower() == self._last_sentence.lower():
+                    logger.warning(f"Duplicate consecutive sentence detected and suppressed: '{sentence}'")
+                    continue
+                self._last_sentence = sentence
+                self._sentence_count += 1
                 chunks.append(sentence)
 
         return chunks
@@ -47,7 +55,13 @@ class SentenceChunker:
         """Flush remaining buffer at the end of LLM generation stream."""
         remaining = self._buffer.strip()
         self._buffer = ""
-        return remaining if remaining else None
+        if remaining and remaining.lower() != self._last_sentence.lower():
+            self._last_sentence = remaining
+            self._sentence_count += 1
+            return remaining
+        return None
 
     def reset(self) -> None:
         self._buffer = ""
+        self._last_sentence = ""
+        self._sentence_count = 0

@@ -77,3 +77,17 @@ async def test_mock_wakeword():
     assert await ww.detect(b"\x00" * 512)
     assert not await ww.detect(b"\x00" * 512)
     await ww.shutdown()
+
+
+def test_edge_tts_script_selection():
+    from vidya.providers.tts.edge_tts_provider import EdgeTTSProvider
+    # Default: auto_switch_voice=False preserves selected voice even with Devanagari characters
+    provider_default = EdgeTTSProvider(voice="en-US-AvaMultilingualNeural", auto_switch_voice=False, speed=1.25)
+    assert provider_default._select_voice_for_text("Hello, how are you?") == "en-US-AvaMultilingualNeural"
+    assert provider_default._select_voice_for_text("नमस्ते, आप कैसे हैं?") == "en-US-AvaMultilingualNeural"
+    assert provider_default._get_rate_str() == "+25%"
+
+    # When auto_switch_voice=True, Hindi Devanagari script triggers Hindi voice
+    provider_auto = EdgeTTSProvider(voice="en-US-AvaMultilingualNeural", auto_switch_voice=True)
+    assert provider_auto._select_voice_for_text("नमस्ते, आप कैसे हैं?") == "hi-IN-SwaraNeural"
+

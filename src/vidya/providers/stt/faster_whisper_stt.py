@@ -22,11 +22,13 @@ class FasterWhisperSTT(STTProtocol):
 
     def __init__(
         self,
-        model: str = "tiny.en",
+        model: str = "base",
+        language: Optional[str] = "auto",
         device: str = "cpu",
         compute_type: str = "int8"
     ) -> None:
         self.model = model
+        self.language = language
         self.device = device
         self.compute_type = compute_type
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
@@ -69,7 +71,8 @@ class FasterWhisperSTT(STTProtocol):
             try:
                 loop = asyncio.get_running_loop()
                 def _run_transcribe():
-                    segments, _ = self._fw_model.transcribe(audio_np, beam_size=2, language="en")
+                    lang = None if self.language in ("auto", None, "", "Auto") else self.language
+                    segments, _ = self._fw_model.transcribe(audio_np, beam_size=2, language=lang)
                     return " ".join([seg.text for seg in segments]).strip()
 
                 text = await loop.run_in_executor(None, _run_transcribe)

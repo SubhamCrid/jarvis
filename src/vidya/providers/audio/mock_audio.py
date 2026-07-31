@@ -53,6 +53,9 @@ class MockAudioSession(AudioSessionProtocol):
         cleared = self._playback_queue.clear()
         logger.info(f"MockAudioSession stopped playback (cleared {cleared} chunks).")
 
+    async def wait_for_playback_complete(self, timeout_s: float = 10.0) -> None:
+        self._playback_queue.clear()
+
     async def simulate_mic_input(self, pcm_data: bytes) -> None:
         """Simulate mic audio input frame pushing to subscribers."""
         if self._is_listening:
