@@ -1,0 +1,15 @@
+# Example User Overrides (Copy to user.yaml to customize)
+version: "1.0"
+
+wakeword:
+  provider: "mock" # Or "openwakeword"
+
+stt:
+  provider: "mock" # Or "whisper_cpp", "faster_whisper", "openai"
+
+llm:
+  provider: "mock" # Or "ollama", "llama_cpp", "openai", "groq"
+  model: "llama3.2:3b"
+
+tts:
+  provider: "mock" # Or "piper", "edge_tts", "openai"

@@ -1,0 +1,55 @@
+version: "1.0"
+
+system:
+  environment: "default"
+  log_level: "INFO"
+  data_dir: "data"
+
+audio:
+  sample_rate: 16000
+  channels: 1
+  chunk_size: 1024
+  buffer_queue_size: 50
+  speaker_sample_rate: 22050
+
+wakeword:
+  provider: "openwakeword"
+  model_name: "vidya"
+  threshold: 0.5
+  sample_rate: 16000
+
+vad:
+  energy_threshold: 0.02
+  silence_duration_ms: 700
+  speech_pad_ms: 300
+
+stt:
+  provider: "whisper_cpp"
+  model: "base.en"
+  language: "en"
+  device: "auto"
+  compute_type: "int8"
+  cloud_fallback: false
+
+llm:
+  provider: "ollama"
+  model: "llama3.2:3b"
+  temperature: 0.7
+  max_tokens: 512
+  stream: true
+  system_prompt: "You are Vidya, a helpful, concise, local-first desktop voice assistant. Keep answers brief, natural, and conversational for speech synthesis."
+
+tts:
+  provider: "piper"
+  voice: "en_US-lessac-medium"
+  speaker_id: 0
+  speed: 1.0
+  chunk_queue_size: 20
+
+session:
+  max_history_turns: 20
+  save_audio_logs: false
+
+observability:
+  enable_metrics: true
+  enable_timeline: true

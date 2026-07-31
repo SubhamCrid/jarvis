@@ -1,0 +1,52 @@
+[2026-07-31 18:08:58] [INFO] [vidya.main] Running Vidya Synthetic Voice Pipeline Test...
+[2026-07-31 18:08:58] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-07-31 18:08:58] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-07-31 18:08:58] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-07-31 18:08:58] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-07-31 18:08:58] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-07-31 18:08:58] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-07-31 18:08:58] [INFO] [vidya.capabilities.voice_assistant] User utterance transcript: 'Hello Vidya, how are you?'
+[2026-07-31 18:08:58] [WARNING] [vidya.core.fsm] Invalid FSM transition: IDLE -> THINKING
+[2026-07-31 18:08:58] [WARNING] [vidya.core.fsm] Invalid FSM transition: IDLE -> SPEAKING
+[2026-07-31 18:08:58] [WARNING] [vidya.core.fsm] Invalid FSM transition: IDLE -> SPEAKING
+[2026-07-31 18:08:58] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-07-31 18:08:58] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession stopped playback (cleared 4 chunks).
+[2026-07-31 18:08:58] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession stopped playback (cleared 0 chunks).
+[2026-07-31 18:08:58] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> STOPPING
+[2026-07-31 18:08:58] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession listening stopped.
+[2026-07-31 18:08:58] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession stopped playback (cleared 0 chunks).
+[2026-07-31 18:09:07] [INFO] [vidya.main] Running Vidya Synthetic Voice Pipeline Test...
+[2026-07-31 18:09:07] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-07-31 18:09:07] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-07-31 18:09:07] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-07-31 18:09:07] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-07-31 18:09:07] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-07-31 18:09:07] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-07-31 18:09:07] [INFO] [vidya.capabilities.voice_assistant] User utterance transcript: 'Hello Vidya, how are you?'
+[2026-07-31 18:09:07] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> THINKING
+[2026-07-31 18:09:07] [INFO] [vidya.core.fsm] [FSM] State transition: THINKING -> SPEAKING
+[2026-07-31 18:09:08] [INFO] [vidya.core.fsm] [FSM] State transition: SPEAKING -> IDLE
+[2026-07-31 18:09:08] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-07-31 18:09:08] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession stopped playback (cleared 4 chunks).
+[2026-07-31 18:09:08] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession stopped playback (cleared 0 chunks).
+[2026-07-31 18:09:08] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> STOPPING
+[2026-07-31 18:09:08] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession listening stopped.
+[2026-07-31 18:09:08] [INFO] [vidya.providers.audio.mock_audio] MockAudioSession stopped playback (cleared 0 chunks).
+[2026-07-31 18:09:11] [INFO] [vidya.main] Running Vidya System Health Check...
+[2026-07-31 18:09:11] [INFO] [vidya.orchestrator] Initializing AssistantOrchestrator and wiring dependencies...
+[2026-07-31 18:09:11] [INFO] [vidya.core.fsm] [FSM] State transition: STARTING -> IDLE
+[2026-07-31 18:09:11] [WARNING] [vidya.providers.audio.sounddevice_session] sounddevice module not found. Degrading AudioSession status.
+[2026-07-31 18:09:11] [WARNING] [vidya.providers.wakeword.openwakeword] openwakeword package not installed. Running in degraded mode.
+[2026-07-31 18:09:11] [INFO] [vidya.providers.stt.whisper_cpp] pywhispercpp module not found. Falling back to subprocess CLI or mock mode.
+[2026-07-31 18:09:13] [WARNING] [vidya.providers.llm.ollama] Could not connect to Ollama at http://localhost:11434: . Degrading status.
+[2026-07-31 18:09:13] [WARNING] [vidya.providers.tts.piper] Piper voice model data\models\en_US-lessac-medium.onnx not downloaded. Running in standby mode.
+[2026-07-31 18:09:13] [INFO] [vidya.providers.storage.session_store] SQLiteSessionStore initialized at data\sessions\vidya.db
+[2026-07-31 18:09:13] [INFO] [vidya.capabilities.voice_assistant] VoiceAssistantCapability initialized successfully.
+[2026-07-31 18:09:13] [INFO] [vidya.capabilities.registry] Registered capability: 'voice_assistant'
+[2026-07-31 18:09:13] [INFO] [vidya.orchestrator] AssistantOrchestrator initialization complete.
+[2026-07-31 18:09:13] [INFO] [vidya.orchestrator] Shutting down AssistantOrchestrator...
+[2026-07-31 18:09:13] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-07-31 18:09:13] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.
+[2026-07-31 18:09:13] [INFO] [vidya.core.fsm] [FSM] State transition: IDLE -> STOPPING
+[2026-07-31 18:09:13] [INFO] [vidya.providers.audio.sounddevice_session] Hardware microphone stream disabled.
+[2026-07-31 18:09:13] [INFO] [vidya.providers.audio.sounddevice_session] Barge-in interrupt: cleared 0 queued audio chunks from speaker.

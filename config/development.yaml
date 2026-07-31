@@ -1,0 +1,9 @@
+version: "1.0"
+
+system:
+  environment: "development"
+  log_level: "DEBUG"
+
+observability:
+  enable_metrics: true
+  enable_timeline: true

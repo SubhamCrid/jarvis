@@ -1,0 +1,9 @@
+version: "1.0"
+
+system:
+  environment: "production"
+  log_level: "WARNING"
+
+observability:
+  enable_metrics: true
+  enable_timeline: false
