@@ -95,6 +95,13 @@ class AssistantOrchestrator(BaseServiceProtocol):
         # STT
         if self.config.stt.provider == "mock" or self.config.system.environment == "test":
             self.stt = MockSTT()
+        elif self.config.stt.provider == "whisper_cpp":
+            try:
+                import pywhispercpp  # type: ignore
+                self.stt = WhisperCppSTT(model=self.config.stt.model)
+            except ImportError:
+                logger.info("pywhispercpp module not installed. Falling back to FasterWhisperSTT.")
+                self.stt = FasterWhisperSTT(model=self.config.stt.model)
         elif self.config.stt.provider == "faster_whisper":
             self.stt = FasterWhisperSTT(model=self.config.stt.model)
         else:

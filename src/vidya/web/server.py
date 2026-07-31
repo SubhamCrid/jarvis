@@ -124,12 +124,7 @@ class WebDashboardServer:
         logger.info("Web UI triggered wake event ('hey_jarvis')")
         await self.orchestrator.bus.publish(WakeDetected(score=1.0, model_name="hey_jarvis"))
         await self.orchestrator.fsm.transition_to(FSMState.WAKE_DETECTED)
-        
-        # Process greeting prompt immediately for wake trigger test
-        if self.orchestrator.voice_capability:
-            asyncio.create_task(
-                self.orchestrator.voice_capability.process_text_prompt("Hello Jarvis, report status.")
-            )
+        await self.orchestrator.fsm.transition_to(FSMState.LISTENING)
         return web.json_response({"status": "wake_triggered"})
 
     async def _handle_interrupt(self, request: web.Request) -> web.Response:

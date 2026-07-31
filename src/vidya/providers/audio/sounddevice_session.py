@@ -36,14 +36,20 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
         self.device_index = device_index
 
         self._is_listening: bool = False
+        self._is_playing: bool = False
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
         self._subscribers: List[AudioSubscriber] = []
         self._playback_queue: BoundedQueue[AudioChunk] = BoundedQueue(maxsize=50)
 
         self._sd = None
         self._input_stream = None
+        self._output_stream = None
         self._playback_task: Optional[asyncio.Task] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+
+    @property
+    def is_playing(self) -> bool:
+        return self._is_playing
 
     def subscribe_mic(self, subscriber: AudioSubscriber) -> None:
         if subscriber not in self._subscribers:
@@ -108,10 +114,21 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
         """Callback invoked by sounddevice C thread for every microphone PCM audio block."""
         if status:
             logger.debug(f"Sounddevice input status: {status}")
-        if self._is_listening and indata is not None and self._loop:
+        if self._is_listening and self._status == ServiceStatus.RUNNING and indata is not None and self._loop and self._loop.is_running():
             pcm_bytes = bytes(indata)
             for sub in self._subscribers:
-                asyncio.run_coroutine_threadsafe(sub(pcm_bytes), self._loop)
+                try:
+                    coro = sub(pcm_bytes)
+                    if asyncio.iscoroutine(coro):
+                        if self._loop and self._loop.is_running():
+                            try:
+                                asyncio.run_coroutine_threadsafe(coro, self._loop)
+                            except Exception:
+                                coro.close()
+                        else:
+                            coro.close()
+                except Exception:
+                    pass
 
     async def start_listening(self) -> None:
         if self._is_listening:
@@ -155,24 +172,67 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
     async def stop_playback(self) -> None:
         """Instantly flush playback queue on barge-in interrupt."""
         cleared = self._playback_queue.clear()
+        self._is_playing = False
+        if self._output_stream:
+            try:
+                self._output_stream.abort()
+                self._output_stream.close()
+            except Exception as e:
+                logger.error(f"Error aborting output stream: {e}")
+            self._output_stream = None
         logger.info(f"Barge-in interrupt: cleared {cleared} queued audio chunks from speaker.")
 
     async def _playback_loop(self) -> None:
         """Background loop reading from playback queue and outputting to speaker."""
+        loop = asyncio.get_running_loop()
+        current_sr = None
+
         while self._status in (ServiceStatus.RUNNING, ServiceStatus.DEGRADED):
             chunk = await self._playback_queue.get(timeout=0.1)
             if chunk and chunk.data:
+                self._is_playing = True
                 try:
                     if self._sd:
                         import numpy as np
                         audio_np = np.frombuffer(chunk.data, dtype=np.int16)
-                        self._sd.play(audio_np, samplerate=chunk.sample_rate)
-                        await asyncio.sleep(len(audio_np) / chunk.sample_rate)
+                        sr = chunk.sample_rate or self.speaker_sample_rate
+
+                        if self._output_stream is None or current_sr != sr:
+                            if self._output_stream:
+                                try:
+                                    self._output_stream.stop()
+                                    self._output_stream.close()
+                                except Exception:
+                                    pass
+                            self._output_stream = self._sd.OutputStream(
+                                samplerate=sr,
+                                channels=self.channels,
+                                dtype="int16"
+                            )
+                            self._output_stream.start()
+                            current_sr = sr
+
+                        def _write_pcm():
+                            if self._output_stream and self._output_stream.active:
+                                self._output_stream.write(audio_np)
+
+                        await loop.run_in_executor(None, _write_pcm)
                     else:
-                        duration = len(chunk.data) / (2 * chunk.sample_rate)
+                        duration = len(chunk.data) / (2 * (chunk.sample_rate or self.speaker_sample_rate))
                         await asyncio.sleep(duration)
                 except Exception as e:
                     logger.error(f"Error playing audio chunk: {e}")
+            else:
+                if self._playback_queue.empty():
+                    self._is_playing = False
+
+        if self._output_stream:
+            try:
+                self._output_stream.stop()
+                self._output_stream.close()
+            except Exception:
+                pass
+            self._output_stream = None
 
     async def health(self) -> HealthStatus:
         return HealthStatus(
@@ -180,6 +240,7 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
             message="SoundDevice session status",
             details={
                 "listening": self._is_listening,
+                "playing": self._is_playing,
                 "device_index": self.device_index,
                 "subscribers_count": len(self._subscribers),
                 "queue_size": self._playback_queue.size()
@@ -194,3 +255,4 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
 
     async def cancel(self) -> None:
         await self.stop_playback()
+

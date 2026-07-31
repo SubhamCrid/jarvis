@@ -42,12 +42,37 @@ class EdgeTTSProvider(TTSProtocol):
 
         try:
             communicate = self._edge_tts.Communicate(text, self.voice)
+            mp3_buffer = bytearray()
             async for chunk in communicate.stream():
                 if self._cancelled:
                     logger.info("EdgeTTS synthesis stream cancelled.")
                     break
                 if chunk["type"] == "audio" and chunk["data"]:
-                    yield AudioChunk(data=chunk["data"], sample_rate=self.sample_rate)
+                    mp3_buffer.extend(chunk["data"])
+
+            if mp3_buffer and not self._cancelled:
+                # Decode MP3 to 16-bit LE PCM via ffmpeg
+                import subprocess
+                try:
+                    p = subprocess.Popen(
+                        ['ffmpeg', '-i', 'pipe:0', '-f', 's16le', '-ac', '1', '-ar', str(self.sample_rate), 'pipe:1'],
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL
+                    )
+                    pcm_data, _ = p.communicate(input=bytes(mp3_buffer))
+                    if pcm_data:
+                        # Chunk PCM data into 4096-byte blocks
+                        chunk_size = 4096
+                        for i in range(0, len(pcm_data), chunk_size):
+                            if self._cancelled:
+                                break
+                            block = pcm_data[i:i + chunk_size]
+                            yield AudioChunk(data=block, sample_rate=self.sample_rate)
+                except Exception as ff_err:
+                    logger.warning(f"ffmpeg PCM decoding failed, yielding raw MP3 chunks: {ff_err}")
+                    yield AudioChunk(data=bytes(mp3_buffer), sample_rate=self.sample_rate)
+
         except asyncio.CancelledError:
             self._cancelled = True
             raise

@@ -32,6 +32,25 @@ from vidya.utils.async_utils import BoundedQueue, safe_cancel_task
 logger = logging.getLogger("vidya.capabilities.voice_assistant")
 
 
+def _strip_wake_word_prefixes(text: str) -> str:
+    """Strip leading wake-word prefixes like 'hey jarvis', 'jarvis', 'hey vidya', 'vidya' from transcript."""
+    if not text:
+        return ""
+    clean = text.strip()
+    lower = clean.lower()
+    prefixes = [
+        "hey jarvis,", "hey jarvis", "jarvis,", "jarvis",
+        "hello jarvis,", "hello jarvis",
+        "hey vidya,", "hey vidya", "vidya,", "vidya",
+        "hello vidya,", "hello vidya"
+    ]
+    for p in prefixes:
+        if lower.startswith(p):
+            clean = clean[len(p):].lstrip(" ,.:;!?")
+            lower = clean.lower()
+    return clean
+
+
 class VoiceAssistantCapability(BaseCapability):
     """
     Primary Voice Assistant Capability.
@@ -53,7 +72,8 @@ class VoiceAssistantCapability(BaseCapability):
         session_store: StorageProtocol,
         observability: ObservabilityService,
         vad_threshold: float = 0.02,
-        silence_duration_ms: int = 700
+        silence_duration_ms: int = 700,
+        followup_timeout_s: float = 6.0
     ) -> None:
         self.fsm = fsm
         self.bus = bus
@@ -64,6 +84,7 @@ class VoiceAssistantCapability(BaseCapability):
         self.tts = tts
         self.session_store = session_store
         self.observability = observability
+        self.followup_timeout_s = followup_timeout_s
 
         self.vad = VADEngine(energy_threshold=vad_threshold, silence_duration_ms=silence_duration_ms)
         self.chunker = SentenceChunker()
@@ -74,6 +95,9 @@ class VoiceAssistantCapability(BaseCapability):
         self._token_queue: BoundedQueue[str] = BoundedQueue(maxsize=100)
         self._active_task: Optional[asyncio.Task] = None
         self._is_cancelled: bool = False
+        self._speaking_start_time: float = 0.0
+        self._listening_start_time: float = 0.0
+        self._consecutive_speech_count: int = 0
 
     async def initialize(self) -> bool:
         await self.fsm.initialize()
@@ -110,10 +134,19 @@ class VoiceAssistantCapability(BaseCapability):
                 await self.fsm.transition_to(FSMState.LISTENING)
                 self._audio_buffer.clear()
                 self.vad.reset()
+                self._listening_start_time = time.perf_counter()
                 await self.bus.publish(SpeechStarted())
 
         # 2. VAD processing during LISTENING state
         elif current_state == FSMState.LISTENING:
+            # Check follow-up listening timeout if user has not started speaking yet
+            if not self.vad._in_speech and len(self._audio_buffer) == 0:
+                if self._listening_start_time > 0 and (time.perf_counter() - self._listening_start_time > self.followup_timeout_s):
+                    logger.info(f"Follow-up listening window ({self.followup_timeout_s}s) timed out without speech. Transitioning to IDLE.")
+                    self._listening_start_time = 0.0
+                    await self.fsm.transition_to(FSMState.IDLE)
+                    return
+
             self._audio_buffer.extend(pcm_data)
             vad_res = self.vad.process_chunk(pcm_data)
 
@@ -122,25 +155,42 @@ class VoiceAssistantCapability(BaseCapability):
                 await self.fsm.transition_to(FSMState.TRANSCRIBING)
                 pcm_copy = bytes(self._audio_buffer)
                 self._audio_buffer.clear()
+                self._listening_start_time = 0.0
                 self._active_task = asyncio.create_task(self._process_utterance(pcm_copy))
 
         # 3. Barge-in / Interruption check during SPEAKING state
         elif current_state == FSMState.SPEAKING:
+            # 800ms refractory grace period after speech start
+            if time.perf_counter() - self._speaking_start_time < 0.8:
+                return
+
+            # Suppress false barge-in from speaker audio playback feedback loop
+            is_playing = getattr(self.audio_session, "is_playing", False)
+            rms = self.vad.calculate_rms(pcm_data)
+            if is_playing and rms < self.vad.energy_threshold * 3.5:
+                self._consecutive_speech_count = 0
+                return
+
             vad_res = self.vad.process_chunk(pcm_data)
             if vad_res["is_speech"]:
-                logger.info("Barge-in interrupt detected! Halting active speech synthesis.")
-                self.observability.increment_counter("cancellation_count")
-                await self.cancel()
-                await self.bus.publish(TaskCancelled(reason="Barge-in user speech"))
-                await self.fsm.transition_to(FSMState.LISTENING)
-                self._audio_buffer.clear()
-                self._audio_buffer.extend(pcm_data)
-                self.vad.reset()
+                self._consecutive_speech_count += 1
+                if self._consecutive_speech_count >= 3:
+                    logger.info("Barge-in interrupt detected! Halting active speech synthesis.")
+                    self.observability.increment_counter("cancellation_count")
+                    await self.cancel()
+                    await self.bus.publish(TaskCancelled(reason="Barge-in user speech"))
+                    await self.fsm.transition_to(FSMState.LISTENING)
+                    self._audio_buffer.clear()
+                    self._audio_buffer.extend(pcm_data)
+                    self.vad.reset()
+                    self._listening_start_time = time.perf_counter()
+                    self._consecutive_speech_count = 0
+            else:
+                self._consecutive_speech_count = 0
 
-    async def _process_utterance(self, pcm_bytes: bytes) -> None:
+    async def _process_utterance(self, pcm_bytes: bytes, session_id: str = "default_session") -> None:
         """Full audio pipeline: STT -> LLM token stream -> Sentence Chunker -> TTS -> Speaker."""
         self._is_cancelled = False
-        session_id = "default_session"
         start_time = time.perf_counter()
 
         try:
@@ -151,12 +201,16 @@ class VoiceAssistantCapability(BaseCapability):
             self.observability.record_latency("stt_latency", stt_dt)
             self.observability.log_timeline_event("STT_COMPLETE", duration_ms=stt_dt)
 
-            if not transcript or not transcript.strip():
-                logger.info("Empty transcript received from STT. Returning to IDLE.")
+            clean_text = transcript.strip() if transcript else ""
+            lower_text = clean_text.lower()
+            ignored_hallucinations = {"[blank_audio]", "(silence)", "thank you.", "subtitles by", "thanks for watching!"}
+
+            if not clean_text or any(h in lower_text for h in ignored_hallucinations):
+                logger.info(f"Empty or hallucinated transcript ('{clean_text}') received from STT. Returning to IDLE.")
                 await self.fsm.transition_to(FSMState.IDLE)
                 return
 
-            await self.process_text_prompt(transcript, session_id=session_id, start_time=start_time)
+            await self.process_text_prompt(clean_text, session_id=session_id, start_time=start_time)
 
         except asyncio.CancelledError:
             self._is_cancelled = True
@@ -165,9 +219,6 @@ class VoiceAssistantCapability(BaseCapability):
             logger.error(f"Error in utterance pipeline: {e}", exc_info=True)
             await self.bus.publish(ErrorOccurred(component="voice_assistant", message=str(e), exception=e))
             await self.fsm.transition_to(FSMState.ERROR)
-        finally:
-            if not self._is_cancelled and self.fsm.state != FSMState.ERROR:
-                await self.fsm.transition_to(FSMState.IDLE)
 
     async def process_text_prompt(self, transcript: str, session_id: str = "default_session", start_time: Optional[float] = None) -> None:
         """Direct text prompt execution bypassing STT (used for UI prompt testing or direct commands)."""
@@ -175,10 +226,14 @@ class VoiceAssistantCapability(BaseCapability):
         if start_time is None:
             start_time = time.perf_counter()
 
+        cleaned_prompt = _strip_wake_word_prefixes(transcript)
+        if not cleaned_prompt:
+            cleaned_prompt = "Hello! How can I help you today?"
+
         try:
-            logger.info(f"Processing text prompt: '{transcript}'")
-            await self.bus.publish(TranscriptReady(text=transcript))
-            await self.session_store.save_turn(session_id, "user", transcript)
+            logger.info(f"Processing text prompt: '{cleaned_prompt}' (raw: '{transcript}')")
+            await self.bus.publish(TranscriptReady(text=cleaned_prompt))
+            await self.session_store.save_turn(session_id, "user", cleaned_prompt)
 
             # Step B: LLM Generation
             await self.fsm.transition_to(FSMState.THINKING)
@@ -195,7 +250,7 @@ class VoiceAssistantCapability(BaseCapability):
 
             self.chunker.reset()
 
-            async for token in self.llm.generate_stream(transcript, formatted_history):
+            async for token in self.llm.generate_stream(cleaned_prompt, formatted_history):
                 if self._is_cancelled:
                     break
 
@@ -233,14 +288,20 @@ class VoiceAssistantCapability(BaseCapability):
             await self.bus.publish(ErrorOccurred(component="voice_assistant", message=str(e), exception=e))
             await self.fsm.transition_to(FSMState.ERROR)
         finally:
+            self._audio_buffer.clear()
+            self.vad.reset()
             if not self._is_cancelled and self.fsm.state != FSMState.ERROR:
-                await self.fsm.transition_to(FSMState.IDLE)
+                logger.info("Turn complete. Entering LISTENING state for follow-up conversation...")
+                self._listening_start_time = time.perf_counter()
+                await self.fsm.transition_to(FSMState.LISTENING)
 
     async def _synthesize_and_speak(self, sentence: str) -> None:
         """Synthesize sentence to TTS AudioChunks and output to Speaker."""
         if not sentence or self._is_cancelled:
             return
 
+        self._speaking_start_time = time.perf_counter()
+        self._consecutive_speech_count = 0
         await self.fsm.transition_to(FSMState.SPEAKING)
         await self.bus.publish(SentenceReady(sentence=sentence))
 
@@ -260,13 +321,15 @@ class VoiceAssistantCapability(BaseCapability):
             await self.audio_session.play_audio_chunk(audio_chunk)
 
         await self.bus.publish(PlaybackFinished())
+        self._audio_buffer.clear()
+        self.vad.reset()
 
     async def execute(self, action: str, params: Dict[str, Any], session_id: str) -> Any:
         """Execute action passed from TaskExecutor."""
         if action == "process_voice":
             pcm = params.get("pcm_data", b"")
             if pcm:
-                await self._process_utterance(pcm)
+                await self._process_utterance(pcm, session_id=session_id)
             else:
                 prompt = params.get("prompt", "Hello")
                 await self.process_text_prompt(prompt, session_id=session_id)

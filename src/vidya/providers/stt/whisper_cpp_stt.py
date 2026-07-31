@@ -80,9 +80,8 @@ class WhisperCppSTT(STTProtocol):
             except Exception as e:
                 logger.error(f"Error during pywhispercpp transcription: {e}")
 
-        # Fallback transcript on speech detection if model is not yet compiled locally
-        logger.info("Speech detected! Using fallback transcript: 'Hello Jarvis, how are you today?'")
-        return "Hello Jarvis, how are you today?"
+        logger.debug("WhisperCppSTT model not loaded, returning empty transcript.")
+        return ""
 
     async def health(self) -> HealthStatus:
         return HealthStatus(

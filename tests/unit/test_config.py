@@ -25,7 +25,7 @@ def test_load_config_defaults(config):
     assert isinstance(config, AppConfig)
     assert config.version == "1.0"
     assert config.stt.provider == "whisper_cpp"
-    assert config.tts.provider == "piper"
+    assert config.tts.provider == "edge_tts"
     assert config.wakeword.provider == "openwakeword"
 
 
