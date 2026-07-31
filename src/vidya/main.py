@@ -1,33 +1,32 @@
 """
-Vidya CLI Entry Point and Application Bootstrap with Integrated Web UI Dashboard.
+CLI entry point and runtime runner for Vidya local voice assistant engine and web dashboard.
 """
 
-import sys
-import asyncio
-import signal
 import argparse
+import asyncio
 import logging
+import signal
+import sys
 from typing import Optional
 
-from vidya.utils.logger import setup_logger
 from vidya.core.config.loader import load_config
 from vidya.orchestrator import AssistantOrchestrator
+from vidya.utils.logger import setup_logger
 from vidya.web.server import WebDashboardServer
 
 logger = logging.getLogger("vidya.main")
 
 
 async def run_assistant(config_file: Optional[str] = None, port: int = 8000) -> None:
-    """Run Vidya desktop voice assistant together with Web UI Dashboard."""
+    """Initialize and run the voice assistant service alongside the web dashboard."""
     config = load_config()
     setup_logger(log_level=config.system.log_level, log_dir=f"{config.system.data_dir}/logs")
-    
+
     orchestrator = AssistantOrchestrator(config)
     if not await orchestrator.initialize():
-        logger.error("Failed to initialize Vidya Orchestrator.")
+        logger.error("Failed to initialize Vidya Assistant orchestrator.")
         return
 
-    # Start Web UI Dashboard Server
     web_server = WebDashboardServer(orchestrator, port=port)
     await web_server.start()
 
@@ -39,8 +38,8 @@ async def run_assistant(config_file: Optional[str] = None, port: int = 8000) -> 
 
     stop_event = asyncio.Event()
 
-    def signal_handler():
-        logger.info("Shutdown signal received (SIGINT/SIGTERM). Stopping Vidya...")
+    def signal_handler() -> None:
+        logger.info("Termination signal received. Initiating graceful shutdown...")
         stop_event.set()
 
     loop = asyncio.get_running_loop()
@@ -59,15 +58,15 @@ async def run_assistant(config_file: Optional[str] = None, port: int = 8000) -> 
     finally:
         await web_server.stop()
         await orchestrator.shutdown()
-        logger.info("Vidya desktop assistant stopped gracefully.")
+        logger.info("Vidya desktop assistant stopped cleanly.")
 
 
 async def run_health_check() -> None:
-    """Run diagnostic health checks on all registered providers and capabilities."""
+    """Perform diagnostic health evaluation of orchestrator providers and capabilities."""
     config = load_config()
     setup_logger(log_level="INFO", log_dir=f"{config.system.data_dir}/logs")
-    
-    logger.info("Running Vidya System Health Check...")
+
+    logger.info("Running Vidya system health check...")
     orchestrator = AssistantOrchestrator(config)
     await orchestrator.initialize()
 
@@ -84,19 +83,19 @@ async def run_health_check() -> None:
 
 
 async def run_pipeline_test() -> None:
-    """Run synthetic end-to-end voice pipeline test."""
+    """Execute a synthetic end-to-end voice processing test."""
     config = load_config(user_overrides={"system": {"environment": "test"}})
     setup_logger(log_level="INFO", log_dir=f"{config.system.data_dir}/logs")
 
-    logger.info("Running Vidya Synthetic Voice Pipeline Test...")
+    logger.info("Executing synthetic voice pipeline verification...")
     orchestrator = AssistantOrchestrator(config)
     await orchestrator.initialize()
 
-    dummy_pcm = (b"\x7f\x3f" * 512)
+    dummy_pcm = b"\x7f\x3f" * 512
     result = await orchestrator.process_task(
         session_id="test_cli_sess",
         task_type="voice_interaction",
-        payload={"pcm_data": dummy_pcm}
+        payload={"pcm_data": dummy_pcm},
     )
 
     print("\n" + "=" * 50)
@@ -111,7 +110,7 @@ async def run_pipeline_test() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Vidya Local-First Desktop Voice Assistant")
+    parser = argparse.ArgumentParser(description="Vidya Local Voice Assistant Engine")
     subparsers = parser.add_subparsers(dest="command", help="Sub-command to run")
 
     run_parser = subparsers.add_parser("run", help="Run active voice assistant with Web UI")
@@ -121,11 +120,10 @@ def main() -> None:
     ui_parser = subparsers.add_parser("ui", help="Launch Web UI Dashboard")
     ui_parser.add_argument("--port", type=int, default=8000, help="Web UI port (default: 8000)")
 
-    health_parser = subparsers.add_parser("check-health", help="Run system health checks")
-    test_parser = subparsers.add_parser("test-pipeline", help="Run synthetic pipeline test")
+    subparsers.add_parser("check-health", help="Run system health checks")
+    subparsers.add_parser("test-pipeline", help="Run synthetic pipeline test")
 
     args = parser.parse_args()
-
     command = args.command or "run"
 
     if command in ("run", "ui"):
@@ -139,3 +137,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

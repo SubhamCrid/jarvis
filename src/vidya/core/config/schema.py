@@ -1,8 +1,7 @@
 """
-Pydantic Configuration Schemas with Versioning and Defaults.
+Application configuration schema definitions using Pydantic validation models.
 """
 
-from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -83,3 +82,4 @@ class AppConfig(BaseModel):
     tts: TTSConfig = Field(default_factory=TTSConfig)
     session: SessionConfig = Field(default_factory=SessionConfig)
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
+

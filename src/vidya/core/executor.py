@@ -1,24 +1,26 @@
 """
-TaskExecutor for sequencing step execution, retries, timeouts, and cancellation.
+Asynchronous plan step executor supporting timeouts, retries, and task cancellation.
 """
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
-from vidya.core.planner import Plan, PlanStep
+from typing import Any, Optional
+
+from vidya.core.planner import Plan
 
 logger = logging.getLogger("vidya.core.executor")
 
 
 class ExecutionCancelledException(Exception):
-    """Raised when task execution is cancelled mid-flight."""
+    """Raised when plan step execution is explicitly cancelled."""
+
     pass
 
 
 class TaskExecutor:
     """
-    Executes Plan steps by routing to registered capabilities.
-    Enforces retries, timeouts, and active cancellation without god-object complexity.
+    Executes sequential plan steps by dispatching requests to registered capabilities,
+    enforcing step timeouts and cancellation checks.
     """
 
     def __init__(self) -> None:
@@ -31,18 +33,19 @@ class TaskExecutor:
         capability_registry: Any,
         session_id: str,
         timeout_sec: float = 30.0,
-        max_retries: int = 2
+        max_retries: int = 2,
     ) -> Any:
+        """Execute all steps in a plan sequentially with retry and timeout bounds."""
         self._is_cancelled = False
         last_result = None
 
         for step in plan.steps:
             if self._is_cancelled:
-                raise ExecutionCancelledException("Execution was cancelled before step start.")
+                raise ExecutionCancelledException("Execution was cancelled prior to step execution.")
 
             capability = capability_registry.get(step.capability_name)
             if not capability:
-                raise ValueError(f"Capability '{step.capability_name}' not registered.")
+                raise ValueError(f"Capability '{step.capability_name}' is not registered.")
 
             retry_count = 0
             success = False
@@ -53,15 +56,16 @@ class TaskExecutor:
                     raise ExecutionCancelledException("Execution cancelled during retry loop.")
 
                 try:
-                    logger.debug(f"Executing step {step.step_id} (Attempt {retry_count + 1}/{max_retries + 1})")
-                    
-                    # Wrap step in timeout
+                    logger.debug(
+                        f"Executing step {step.step_id} (attempt {retry_count + 1}/{max_retries + 1})"
+                    )
+
                     step_coro = capability.execute(
                         action=step.action,
                         params=step.params,
-                        session_id=session_id
+                        session_id=session_id,
                     )
-                    
+
                     self._current_task = asyncio.create_task(step_coro)
                     last_result = await asyncio.wait_for(self._current_task, timeout=timeout_sec)
                     success = True
@@ -71,24 +75,27 @@ class TaskExecutor:
                     last_error = te
                     retry_count += 1
                 except asyncio.CancelledError as ce:
-                    logger.info(f"Step {step.step_id} cancelled.")
+                    logger.info(f"Step {step.step_id} task cancelled.")
                     self._is_cancelled = True
                     raise ExecutionCancelledException("Step task cancelled.") from ce
                 except Exception as e:
-                    logger.error(f"Error in step {step.step_id}: {e}")
+                    logger.error(f"Error executing step {step.step_id}: {e}")
                     last_error = e
                     retry_count += 1
                 finally:
                     self._current_task = None
 
             if not success:
-                raise RuntimeError(f"Step {step.step_id} failed after {max_retries + 1} attempts: {last_error}")
+                raise RuntimeError(
+                    f"Step {step.step_id} failed after {max_retries + 1} attempts: {last_error}"
+                )
 
         return last_result
 
     async def cancel(self) -> None:
-        """Cancel current in-flight step execution."""
+        """Cancel active step execution asynchronously."""
         self._is_cancelled = True
         if self._current_task and not self._current_task.done():
             self._current_task.cancel()
             logger.info("TaskExecutor cancelled active task step.")
+

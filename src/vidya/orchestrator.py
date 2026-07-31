@@ -1,57 +1,50 @@
 """
-Thin AssistantOrchestrator.
-Confined strictly to 4 duties:
-1. Initialize components
-2. Wire dependencies
-3. Start and stop services
-4. Delegate requests
-Zero business logic.
+Assistant orchestrator container responsible for dependency injection, lifecycle control,
+and task routing across voice capabilities and hardware providers.
 """
 
 import logging
-from typing import Optional, Dict, Any
-from vidya.core.config.loader import load_config
-from vidya.core.config.schema import AppConfig
-from vidya.core.base import BaseServiceProtocol, ServiceStatus, HealthStatus
-from vidya.core.fsm import VoiceFSM
-from vidya.core.bus import MessageBus
-from vidya.core.task_manager import TaskManager, Task
-from vidya.core.planner import SimplePlanner
-from vidya.core.executor import TaskExecutor
-from vidya.core.observability import ObservabilityService
+from typing import Any, Dict, Optional
+
 from vidya.capabilities.registry import CapabilityRegistry
 from vidya.capabilities.voice_assistant import VoiceAssistantCapability
+from vidya.core.base import BaseServiceProtocol, HealthStatus, ServiceStatus
+from vidya.core.bus import MessageBus
+from vidya.core.config.loader import load_config
+from vidya.core.config.schema import AppConfig
+from vidya.core.executor import TaskExecutor
+from vidya.core.fsm import VoiceFSM
+from vidya.core.observability import ObservabilityService
+from vidya.core.planner import SimplePlanner
+from vidya.core.task_manager import TaskManager
 
-# Providers
 from vidya.providers.audio.mock_audio import MockAudioSession
 from vidya.providers.audio.sounddevice_session import SoundDeviceAudioSession
-from vidya.providers.wakeword.mock_wakeword import MockWakeWord
-from vidya.providers.wakeword.openwakeword_provider import OpenWakeWordProvider
-from vidya.providers.stt.mock_stt import MockSTT
-from vidya.providers.stt.whisper_cpp_stt import WhisperCppSTT
-from vidya.providers.stt.faster_whisper_stt import FasterWhisperSTT
 from vidya.providers.llm.mock_llm import MockLLM
 from vidya.providers.llm.ollama_llm import OllamaLLM
+from vidya.providers.storage.session_store import SQLiteSessionStore
+from vidya.providers.stt.faster_whisper_stt import FasterWhisperSTT
+from vidya.providers.stt.mock_stt import MockSTT
+from vidya.providers.stt.whisper_cpp_stt import WhisperCppSTT
+from vidya.providers.tts.edge_tts_provider import EdgeTTSProvider
 from vidya.providers.tts.mock_tts import MockTTS
 from vidya.providers.tts.piper_tts import PiperTTS
-from vidya.providers.tts.edge_tts_provider import EdgeTTSProvider
-from vidya.providers.storage.session_store import SQLiteSessionStore
+from vidya.providers.wakeword.mock_wakeword import MockWakeWord
+from vidya.providers.wakeword.openwakeword_provider import OpenWakeWordProvider
 
 logger = logging.getLogger("vidya.orchestrator")
 
 
 class AssistantOrchestrator(BaseServiceProtocol):
     """
-    Thin Assistant Orchestrator.
-    Wires system dependencies and routes execution through TaskManager, Planner, TaskExecutor,
-    and CapabilityRegistry.
+    Central dependency orchestrator managing system provider instantiation,
+    capability registration, lifecycle startup/shutdown, and task delegation.
     """
 
     def __init__(self, config: Optional[AppConfig] = None) -> None:
         self.config = config or load_config()
         self._status = ServiceStatus.UNINITIALIZED
 
-        # 1. Framework Core
         self.bus = MessageBus()
         self.fsm = VoiceFSM()
         self.task_manager = TaskManager()
@@ -60,39 +53,34 @@ class AssistantOrchestrator(BaseServiceProtocol):
         self.observability = ObservabilityService()
         self.capability_registry = CapabilityRegistry()
 
-        # Service references
-        self.audio_session = None
-        self.wakeword = None
-        self.stt = None
-        self.llm = None
-        self.tts = None
-        self.session_store = None
-        self.voice_capability = None
+        self.audio_session: Any = None
+        self.wakeword: Any = None
+        self.stt: Any = None
+        self.llm: Any = None
+        self.tts: Any = None
+        self.session_store: Any = None
+        self.voice_capability: Optional[VoiceAssistantCapability] = None
 
     async def initialize(self) -> bool:
-        """Duty 1 & 2: Initialize components and wire dependencies."""
-        logger.info("Initializing AssistantOrchestrator and wiring dependencies...")
+        """Instantiate providers based on system configuration and wire capability dependencies."""
+        logger.info("Initializing AssistantOrchestrator dependencies...")
 
-        # 1. Instantiate Providers based on Configuration
-        # Audio Session
         if self.config.system.environment == "test":
             self.audio_session = MockAudioSession(sample_rate=self.config.audio.sample_rate)
         else:
             self.audio_session = SoundDeviceAudioSession(
                 sample_rate=self.config.audio.sample_rate,
-                speaker_sample_rate=self.config.audio.speaker_sample_rate
+                speaker_sample_rate=self.config.audio.speaker_sample_rate,
             )
 
-        # Wake Word
         if self.config.wakeword.provider == "mock" or self.config.system.environment == "test":
             self.wakeword = MockWakeWord(threshold=self.config.wakeword.threshold)
         else:
             self.wakeword = OpenWakeWordProvider(
                 model_name=self.config.wakeword.model_name,
-                threshold=self.config.wakeword.threshold
+                threshold=self.config.wakeword.threshold,
             )
 
-        # STT
         if self.config.stt.provider == "mock" or self.config.system.environment == "test":
             self.stt = MockSTT()
         elif self.config.stt.provider == "whisper_cpp":
@@ -100,14 +88,13 @@ class AssistantOrchestrator(BaseServiceProtocol):
                 import pywhispercpp  # type: ignore
                 self.stt = WhisperCppSTT(model=self.config.stt.model)
             except ImportError:
-                logger.info("pywhispercpp module not installed. Falling back to FasterWhisperSTT.")
+                logger.info("pywhispercpp uninstalled; using FasterWhisperSTT backend.")
                 self.stt = FasterWhisperSTT(model=self.config.stt.model)
         elif self.config.stt.provider == "faster_whisper":
             self.stt = FasterWhisperSTT(model=self.config.stt.model)
         else:
             self.stt = FasterWhisperSTT(model=self.config.stt.model)
 
-        # LLM
         if self.config.llm.provider == "mock" or self.config.system.environment == "test":
             self.llm = MockLLM()
         else:
@@ -115,16 +102,15 @@ class AssistantOrchestrator(BaseServiceProtocol):
                 model=self.config.llm.model,
                 system_prompt=self.config.llm.system_prompt,
                 temperature=self.config.llm.temperature,
-                max_tokens=self.config.llm.max_tokens
+                max_tokens=self.config.llm.max_tokens,
             )
 
-        # TTS
         if self.config.tts.provider == "edge_tts":
             self.tts = EdgeTTSProvider(
                 voice=self.config.tts.voice,
                 sample_rate=self.config.audio.speaker_sample_rate,
                 speed=self.config.tts.speed,
-                auto_switch_voice=self.config.tts.auto_switch_voice
+                auto_switch_voice=self.config.tts.auto_switch_voice,
             )
         elif self.config.tts.provider == "mock" or self.config.system.environment == "test":
             self.tts = MockTTS(sample_rate=self.config.audio.speaker_sample_rate)
@@ -132,15 +118,13 @@ class AssistantOrchestrator(BaseServiceProtocol):
             self.tts = PiperTTS(
                 voice=self.config.tts.voice,
                 sample_rate=self.config.audio.speaker_sample_rate,
-                speed=self.config.tts.speed
+                speed=self.config.tts.speed,
             )
 
-        # Storage
         self.session_store = SQLiteSessionStore(
             db_path=f"{self.config.system.data_dir}/sessions/vidya.db"
         )
 
-        # 2. Instantiate and Wire Primary Voice Assistant Capability
         self.voice_capability = VoiceAssistantCapability(
             fsm=self.fsm,
             bus=self.bus,
@@ -153,45 +137,43 @@ class AssistantOrchestrator(BaseServiceProtocol):
             observability=self.observability,
             vad_threshold=self.config.vad.energy_threshold,
             silence_duration_ms=self.config.vad.silence_duration_ms,
-            max_history_turns=self.config.session.max_history_turns
+            max_history_turns=self.config.session.max_history_turns,
         )
 
-        # Initialize Voice Capability
         await self.voice_capability.initialize()
-
-        # Register capability
         self.capability_registry.register(self.voice_capability)
 
         self._status = ServiceStatus.RUNNING
-        logger.info("AssistantOrchestrator initialization complete.")
+        logger.info("AssistantOrchestrator successfully initialized.")
         return True
 
     async def start(self) -> None:
-        """Duty 3: Start listening and main operations."""
+        """Start hardware listening streams."""
         if self.audio_session:
             await self.audio_session.start_listening()
-        logger.info("Vidya Desktop Assistant is ACTIVE and listening for wake word 'Vidya'...")
+        logger.info(
+            f"Vidya Assistant active; listening for wake word '{self.config.wakeword.model_name}'..."
+        )
 
     async def process_task(self, session_id: str, task_type: str, payload: Dict[str, Any]) -> Any:
-        """Duty 4: Delegate requests to TaskManager -> Planner -> TaskExecutor -> Capability."""
+        """Delegate incoming session task through task manager, planner, and task executor."""
         task = self.task_manager.create_task(session_id, task_type, payload)
         plan = self.planner.create_plan(task)
-        
-        result = await self.executor.execute_plan(
+
+        return await self.executor.execute_plan(
             plan=plan,
             capability_registry=self.capability_registry,
-            session_id=session_id
+            session_id=session_id,
         )
-        return result
 
     def update_settings(
         self,
         silence_duration_ms: Optional[int] = None,
         tts_voice: Optional[str] = None,
-        tts_speed: Optional[float] = None
+        tts_speed: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """Modularity helper: update active runtime configuration in single place."""
-        updated = {}
+        """Update runtime configuration settings dynamically."""
+        updated: Dict[str, Any] = {}
         if self.voice_capability and silence_duration_ms is not None:
             self.voice_capability.vad.silence_duration_ms = int(silence_duration_ms)
             self.config.vad.silence_duration_ms = int(silence_duration_ms)
@@ -216,12 +198,12 @@ class AssistantOrchestrator(BaseServiceProtocol):
             message="Assistant Orchestrator status",
             details={
                 "registered_capabilities": self.capability_registry.list_capabilities(),
-                "fsm_state": self.fsm.state.value if self.fsm else "N/A"
-            }
+                "fsm_state": self.fsm.state.value if self.fsm else "N/A",
+            },
         )
 
     async def shutdown(self) -> None:
-        """Duty 3: Graceful service shutdown."""
+        """Gracefully shut down orchestrator services and hardware streams."""
         logger.info("Shutting down AssistantOrchestrator...")
         await self.cancel()
         if self.voice_capability:
@@ -232,3 +214,4 @@ class AssistantOrchestrator(BaseServiceProtocol):
         await self.executor.cancel()
         if self.voice_capability:
             await self.voice_capability.cancel()
+

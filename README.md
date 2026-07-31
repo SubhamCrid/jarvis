@@ -96,4 +96,4 @@ Run the full unit and integration test suite:
 pytest tests/ -v
 ```
 
-All 31 unit and integration tests verify configuration, MessageBus event schemas, FSM state transitions, audio session barge-in, session store persistence, streaming chunkers, TaskExecutor retries/cancellation, and end-to-end voice processing.
+All 34 unit and integration tests verify configuration, MessageBus event schemas, FSM state transitions, audio session barge-in, session store persistence, streaming chunkers, TaskExecutor retries/cancellation, and end-to-end voice processing.

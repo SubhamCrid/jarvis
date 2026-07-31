@@ -1,12 +1,12 @@
 """
-Typed MessageBus and Documented Event Dataclass Schemas for Vidya Framework.
+Typed message bus and event schema definitions for the Vidya framework.
 """
 
 import asyncio
+import datetime
 import logging
 from dataclasses import dataclass, field
-import datetime
-from typing import Type, Callable, Awaitable, List, Dict, Any, TypeVar, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, TypeVar
 
 logger = logging.getLogger("vidya.core.bus")
 
@@ -14,8 +14,6 @@ logger = logging.getLogger("vidya.core.bus")
 def current_iso_timestamp() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-
-# Documented Event Dataclass Schemas
 
 @dataclass
 class WakeDetected:
@@ -101,8 +99,8 @@ EventHandler = Callable[[Any], Awaitable[None]]
 
 class MessageBus:
     """
-    Asynchronous MessageBus supporting typed Events, Commands, Responses, and Notifications.
-    Handlers run as non-blocking tasks.
+    In-memory asynchronous pub/sub message bus routing domain events
+    to subscribed handlers.
     """
 
     def __init__(self) -> None:
@@ -110,24 +108,24 @@ class MessageBus:
         self._global_subscribers: List[EventHandler] = []
 
     def subscribe(self, event_type: Type[T], handler: Callable[[T], Awaitable[None]]) -> None:
-        """Subscribe an async handler to a specific event type."""
+        """Subscribe an asynchronous handler to a specific event type."""
         if event_type not in self._subscribers:
             self._subscribers[event_type] = []
         if handler not in self._subscribers[event_type]:
             self._subscribers[event_type].append(handler)  # type: ignore
 
     def subscribe_all(self, handler: EventHandler) -> None:
-        """Subscribe an async handler to all events."""
+        """Subscribe an asynchronous handler to receive all domain events."""
         if handler not in self._global_subscribers:
             self._global_subscribers.append(handler)
 
     def unsubscribe(self, event_type: Type[T], handler: Callable[[T], Awaitable[None]]) -> None:
-        """Unsubscribe a handler from an event type."""
+        """Unsubscribe an event handler from a specific event type."""
         if event_type in self._subscribers and handler in self._subscribers[event_type]:
             self._subscribers[event_type].remove(handler)  # type: ignore
 
     async def publish(self, event: Any) -> None:
-        """Publish an event to all registered subscribers asynchronously."""
+        """Publish a domain event asynchronously to all registered handlers."""
         event_type = type(event)
         handlers = self._subscribers.get(event_type, []).copy() + self._global_subscribers.copy()
 
@@ -136,16 +134,22 @@ class MessageBus:
 
         for handler in handlers:
             try:
-                # Schedule handler as background task or execute directly
                 if asyncio.iscoroutinefunction(handler):
                     asyncio.create_task(self._safe_execute(handler, event))
                 else:
                     handler(event)
             except Exception as e:
-                logger.error(f"Error publishing event {event_type.__name__} to handler: {e}", exc_info=True)
+                logger.error(
+                    f"Error publishing event {event_type.__name__} to handler: {e}",
+                    exc_info=True,
+                )
 
     async def _safe_execute(self, handler: EventHandler, event: Any) -> None:
         try:
             await handler(event)
         except Exception as e:
-            logger.error(f"Async error handling event {type(event).__name__}: {e}", exc_info=True)
+            logger.error(
+                f"Async exception in event handler for {type(event).__name__}: {e}",
+                exc_info=True,
+            )
+

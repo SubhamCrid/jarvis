@@ -1,12 +1,12 @@
 """
-Task Manager and Task Execution Lifecycle for Vidya.
+Task management and lifecycle tracking for asynchronous assistant operations.
 """
 
-import uuid
 import datetime
-from enum import Enum
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional
+import uuid
 
 
 class TaskStatus(str, Enum):
@@ -26,28 +26,34 @@ class Task:
     status: TaskStatus = TaskStatus.PENDING
     result: Optional[Any] = None
     error: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat()
+    )
     completed_at: Optional[str] = None
 
 
 class TaskManager:
-    """Manages active and historical tasks across sessions."""
+    """Tracks active and historical execution tasks across user sessions."""
 
     def __init__(self) -> None:
         self._tasks: Dict[str, Task] = {}
 
-    def create_task(self, session_id: str, task_type: str, payload: Optional[Dict[str, Any]] = None) -> Task:
+    def create_task(
+        self, session_id: str, task_type: str, payload: Optional[Dict[str, Any]] = None
+    ) -> Task:
+        """Instantiate and register a new pending execution task."""
         task_id = f"task-{uuid.uuid4().hex[:8]}"
         task = Task(
             task_id=task_id,
             session_id=session_id,
             task_type=task_type,
-            payload=payload or {}
+            payload=payload or {},
         )
         self._tasks[task_id] = task
         return task
 
     def get_task(self, task_id: str) -> Optional[Task]:
+        """Retrieve a task by its unique identifier."""
         return self._tasks.get(task_id)
 
     def update_status(
@@ -55,11 +61,13 @@ class TaskManager:
         task_id: str,
         status: TaskStatus,
         result: Optional[Any] = None,
-        error: Optional[str] = None
+        error: Optional[str] = None,
     ) -> Optional[Task]:
+        """Update the operational status, outcome, or error state of a task."""
         task = self._tasks.get(task_id)
         if not task:
             return None
+
         task.status = status
         if result is not None:
             task.result = result
@@ -70,10 +78,14 @@ class TaskManager:
         return task
 
     def cancel_task(self, task_id: str, reason: str = "User interruption") -> Optional[Task]:
+        """Cancel an active task with a specified cancellation reason."""
         return self.update_status(task_id, TaskStatus.CANCELLED, error=reason)
 
     def list_active_tasks(self) -> List[Task]:
+        """Return all tasks currently in PENDING or RUNNING status."""
         return [
-            t for t in self._tasks.values()
+            t
+            for t in self._tasks.values()
             if t.status in (TaskStatus.PENDING, TaskStatus.RUNNING)
         ]
+

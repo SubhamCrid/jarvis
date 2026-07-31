@@ -1,101 +1,116 @@
 """
-Unified Provider Protocols for STT, LLM, TTS, WakeWord, AudioSession, and Storage.
-All providers inherit from BaseServiceProtocol (initialize, health, shutdown, cancel).
+Abstract base protocols defining provider interfaces for hardware and cloud backends.
 """
 
-from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Optional, Dict, Any, List
-from dataclasses import dataclass, field
 import datetime
+from abc import abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, AsyncGenerator, Dict, List, Optional
+
 from vidya.core.base import BaseServiceProtocol
 
 
 @dataclass
 class AudioChunk:
-    """Standard decoupled audio chunk passed from TTS to Speaker or from Mic to Subscribers."""
+    """Decoupled audio frame container passed between pipeline stages."""
+
     data: bytes
     sample_rate: int = 22050
     channels: int = 1
-    sample_width: int = 2  # 16-bit PCM
-    timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+    sample_width: int = 2
+    timestamp: str = field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat()
+    )
 
 
 class AudioSessionProtocol(BaseServiceProtocol):
-    """Exclusive owner of Microphone input and Speaker output streams."""
+    """Protocol governing hardware microphone capture and speaker playback streams."""
 
     @abstractmethod
     async def start_listening(self) -> None:
-        """Enable microphone capture stream."""
+        """Enable active microphone capture."""
         pass
 
     @abstractmethod
     async def stop_listening(self) -> None:
-        """Disable microphone capture stream."""
+        """Disable active microphone capture."""
         pass
 
     @abstractmethod
     async def play_audio_chunk(self, chunk: AudioChunk) -> None:
-        """Queue AudioChunk for speaker playback."""
+        """Queue an audio chunk for speaker playback."""
         pass
 
     @abstractmethod
     async def stop_playback(self) -> None:
-        """Instantly halt active speaker playback buffer on barge-in."""
+        """Immediately halt active speaker playback buffer on user interruption."""
         pass
 
     @abstractmethod
     async def wait_for_playback_complete(self, timeout_s: float = 10.0) -> None:
-        """Wait until active speaker playback finishes playing all queued chunks."""
+        """Block until speaker playback drains all queued audio chunks."""
         pass
 
 
 class WakeWordProtocol(BaseServiceProtocol):
-    """Wake Word Detector engine protocol."""
+    """Protocol for wake word detection engines."""
 
     @abstractmethod
     async def detect(self, pcm_data: bytes) -> bool:
-        """Process PCM audio frame and return True if wake word is detected."""
+        """Evaluate a raw audio frame for wake word trigger match."""
         pass
 
 
 class STTProtocol(BaseServiceProtocol):
-    """Speech-to-Text provider protocol."""
+    """Protocol for Speech-to-Text transcription engines."""
 
     @abstractmethod
     async def transcribe(self, pcm_data: bytes, sample_rate: int = 16000) -> str:
-        """Transcribe raw PCM audio bytes to text string."""
+        """Transcribe raw PCM audio bytes to a text string."""
         pass
 
 
 class LLMProtocol(BaseServiceProtocol):
-    """Language Model provider protocol."""
+    """Protocol for Language Model text generation backends."""
 
     @abstractmethod
-    async def generate_stream(self, prompt: str, history: Optional[List[Dict[str, str]]] = None) -> AsyncGenerator[str, None]:
-        """Stream generated text tokens asynchronously."""
+    async def generate_stream(
+        self, prompt: str, history: Optional[List[Dict[str, str]]] = None
+    ) -> AsyncGenerator[str, None]:
+        """Stream generated response tokens asynchronously."""
         yield ""
 
 
 class TTSProtocol(BaseServiceProtocol):
-    """Text-to-Speech provider yielding AudioChunk streams."""
+    """Protocol for Text-to-Speech synthesis engines."""
 
     @abstractmethod
     async def synthesize_stream(self, text: str) -> AsyncGenerator[AudioChunk, None]:
-        """Synthesize text into a stream of AudioChunk objects."""
+        """Synthesize text into a stream of audio chunks."""
         yield AudioChunk(data=b"")
 
 
 class StorageProtocol(BaseServiceProtocol):
-    """SessionStore database & file persistence protocol."""
+    """Protocol for session state and turn persistence backends."""
 
     @abstractmethod
     async def create_session(self, session_id: str, title: str = "New Session") -> Dict[str, Any]:
+        """Initialize a new session entry."""
         pass
 
     @abstractmethod
-    async def save_turn(self, session_id: str, role: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def save_turn(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Persist a single user or assistant conversation turn."""
         pass
 
     @abstractmethod
     async def get_history(self, session_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Retrieve recent conversation history for context assembly."""
         pass
+
