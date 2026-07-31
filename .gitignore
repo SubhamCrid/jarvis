@@ -73,3 +73,5 @@ data/sessions/*.db
 
 # User configuration overrides
 config/user.yaml
+
+__pycache__
