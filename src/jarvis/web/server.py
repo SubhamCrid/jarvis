@@ -44,6 +44,7 @@ class WebDashboardServer:
         self.app.router.add_get("/ws", self._handle_websocket)
 
         self.app.router.add_post("/api/trigger-wake", self._handle_trigger_wake)
+        self.app.router.add_post("/api/stop-listening", self._handle_stop_listening)
         self.app.router.add_post("/api/interrupt", self._handle_interrupt)
         self.app.router.add_post("/api/simulate-voice", self._handle_simulate_voice)
         self.app.router.add_get("/api/audio-devices", self._handle_list_audio_devices)
@@ -78,8 +79,10 @@ class WebDashboardServer:
         try:
             async for _ in ws:
                 pass
+        except Exception as err:
+            logger.debug(f"WebSocket client loop exited: {err}")
         finally:
-            self.sockets.remove(ws)
+            self.sockets.discard(ws)
             logger.info("WebSocket client disconnected from web dashboard.")
 
         return ws
@@ -119,6 +122,7 @@ class WebDashboardServer:
 
     async def _handle_trigger_wake(self, request: web.Request) -> web.Response:
         logger.info("Web dashboard triggered wake event.")
+        await self.orchestrator.cancel()
         if self.orchestrator.voice_capability:
             self.orchestrator.voice_capability._audio_buffer.clear()
             self.orchestrator.voice_capability.vad.reset()
@@ -129,10 +133,36 @@ class WebDashboardServer:
         await self.orchestrator.fsm.transition_to(FSMState.LISTENING)
         return web.json_response({"status": "wake_triggered"})
 
+    async def _handle_stop_listening(self, request: web.Request) -> web.Response:
+        logger.info("Web dashboard triggered stop listening.")
+        await self.orchestrator.cancel()
+        if self.orchestrator.voice_capability:
+            self.orchestrator.voice_capability._audio_buffer.clear()
+            self.orchestrator.voice_capability.vad.reset()
+            self.orchestrator.voice_capability._listening_start_time = 0.0
+        await self.orchestrator.fsm.force_transition_to(FSMState.IDLE)
+        return web.json_response({"status": "listening_stopped"})
+
     async def _handle_interrupt(self, request: web.Request) -> web.Response:
         logger.info("Web dashboard triggered barge-in interrupt.")
+        current_state = self.orchestrator.fsm.state
+        if current_state == FSMState.IDLE:
+            logger.info("Assistant is in IDLE state. Ignoring interrupt request.")
+            return web.json_response({"status": "ignored", "reason": "IDLE state"})
+
         await self.orchestrator.cancel()
-        await self.orchestrator.fsm.transition_to(FSMState.LISTENING)
+        if self.orchestrator.voice_capability:
+            self.orchestrator.voice_capability._audio_buffer.clear()
+            self.orchestrator.voice_capability.vad.reset()
+
+        if current_state == FSMState.SPEAKING:
+            import time
+            if self.orchestrator.voice_capability:
+                self.orchestrator.voice_capability._listening_start_time = time.perf_counter()
+            await self.orchestrator.fsm.transition_to(FSMState.LISTENING)
+        else:
+            await self.orchestrator.fsm.force_transition_to(FSMState.IDLE)
+
         return web.json_response({"status": "interrupted"})
 
     async def _handle_simulate_voice(self, request: web.Request) -> web.Response:

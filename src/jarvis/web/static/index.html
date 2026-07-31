@@ -52,7 +52,9 @@
     }
 
     html, body {
-      height: 100%;
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
       background-color: var(--bg-obsidian);
       color: var(--text-primary);
       font-family: var(--font-body);
@@ -65,30 +67,27 @@
     body {
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
       background-image: 
         radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.04) 0%, transparent 40%),
         radial-gradient(circle at 90% 90%, rgba(168, 85, 247, 0.03) 0%, transparent 40%);
-      overflow-x: hidden;
     }
 
-    /* Focus visible accessibility */
     :focus-visible {
       outline: 2px solid var(--border-focus);
       outline-offset: 2px;
     }
 
-    /* Minimal Sticky Header */
+    /* Header Bar */
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 2rem;
+      padding: 0.6rem 1.75rem;
+      height: 56px;
+      flex-shrink: 0;
       border-bottom: 1px solid var(--border-subtle);
       background: rgba(11, 13, 17, 0.85);
       backdrop-filter: blur(16px);
-      position: sticky;
-      top: 0;
       z-index: 100;
     }
 
@@ -99,8 +98,8 @@
     }
 
     .brand-logo {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: var(--radius-md);
       background: linear-gradient(135deg, #0ea5e9, #6366f1);
       display: flex;
@@ -110,7 +109,7 @@
       font-weight: 800;
       font-size: 1.2rem;
       color: #ffffff;
-      box-shadow: 0 0 20px var(--accent-cyan-glow);
+      box-shadow: 0 0 18px var(--accent-cyan-glow);
     }
 
     .brand-title {
@@ -171,20 +170,33 @@
       background: rgba(16, 185, 129, 0.08);
       color: var(--accent-emerald);
       border: 1px solid rgba(16, 185, 129, 0.2);
-      padding: 0.35rem 0.9rem;
+      padding: 0.3rem 0.85rem;
       border-radius: 30px;
     }
 
-    /* Main Dashboard Grid */
+    /* Main Dashboard Layout — Strictly Locked 100vh Grid */
     .dashboard-container {
       display: grid;
-      grid-template-columns: 320px 1fr 340px;
-      gap: 1.2rem;
-      padding: 1.25rem 2rem;
+      grid-template-columns: 310px 1fr 330px;
+      gap: 1rem;
+      padding: 0.9rem 1.5rem;
       flex: 1;
+      height: calc(100vh - 56px);
+      max-height: calc(100vh - 56px);
+      min-height: 0;
+      width: 100%;
       max-width: 1720px;
       margin: 0 auto;
-      width: 100%;
+      overflow: hidden;
+    }
+
+    .col-left, .col-center, .col-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
 
     /* Glass Panels */
@@ -192,9 +204,9 @@
       background: var(--panel-bg);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
-      padding: 1.2rem;
+      padding: 1.1rem 1.2rem;
       backdrop-filter: blur(16px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
       display: flex;
       flex-direction: column;
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -211,25 +223,26 @@
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      margin-bottom: 1rem;
+      margin-bottom: 0.85rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
 
     /* Controls System */
     .controls-group {
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.75rem;
     }
 
     .control-box {
       display: flex;
       flex-direction: column;
-      gap: 0.45rem;
+      gap: 0.4rem;
       background: rgba(0, 0, 0, 0.25);
-      padding: 0.8rem 0.95rem;
+      padding: 0.7rem 0.85rem;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-subtle);
     }
@@ -247,7 +260,7 @@
     }
 
     .control-val {
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       color: var(--accent-cyan);
       font-family: var(--font-mono);
       font-weight: 600;
@@ -255,7 +268,7 @@
 
     .input-box {
       width: 100%;
-      padding: 0.6rem 0.8rem;
+      padding: 0.55rem 0.8rem;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-subtle);
       background: rgba(11, 13, 17, 0.7);
@@ -273,9 +286,9 @@
 
     .range-slider {
       width: 100%;
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.1);
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.12);
       outline: none;
       cursor: pointer;
       accent-color: var(--accent-cyan);
@@ -284,7 +297,7 @@
     /* Button Controls */
     .btn {
       width: 100%;
-      padding: 0.75rem 1rem;
+      padding: 0.7rem 1rem;
       border-radius: var(--radius-md);
       border: 1px solid transparent;
       font-family: var(--font-body);
@@ -308,6 +321,28 @@
       background: rgba(56, 189, 248, 0.22);
       box-shadow: 0 4px 16px var(--accent-cyan-glow);
       transform: translateY(-1px);
+    }
+
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--accent-amber);
+      border-color: rgba(245, 158, 11, 0.28);
+    }
+
+    .btn-warning:hover {
+      background: rgba(245, 158, 11, 0.22);
+      box-shadow: 0 4px 16px var(--accent-amber-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-warning.active-listening {
+      animation: pulseAmber 1.8s infinite alternate;
+      border-color: var(--accent-amber);
+    }
+
+    @keyframes pulseAmber {
+      from { box-shadow: 0 0 4px var(--accent-amber-glow); }
+      to { box-shadow: 0 0 16px var(--accent-amber); }
     }
 
     .btn-danger {
@@ -337,22 +372,22 @@
     .hero-card {
       align-items: center;
       justify-content: center;
-      padding: 1.8rem 1.5rem;
-      min-height: 290px;
+      padding: 1.1rem 1.2rem;
       position: relative;
+      flex-shrink: 0;
     }
 
     .state-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.55rem;
+      gap: 0.5rem;
       padding: 0.35rem 1.1rem;
       border-radius: 30px;
       font-family: var(--font-display);
       font-weight: 700;
       font-size: 0.92rem;
       letter-spacing: 0.04em;
-      margin-bottom: 0.85rem;
+      margin-bottom: 0.75rem;
       transition: all 0.3s ease;
     }
 
@@ -364,43 +399,111 @@
     .state-SPEAKING { background: rgba(244, 63, 94, 0.12); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
     .state-ERROR { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); }
 
-    .state-caption {
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-      font-weight: 500;
-      margin-top: 0.75rem;
-      text-align: center;
+    .canvas-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     #visualizerCanvas {
-      width: 320px;
-      height: 160px;
+      width: 300px;
+      height: 140px;
       border-radius: var(--radius-md);
       cursor: pointer;
     }
 
-    /* Conversation Transcript Card */
+    .state-caption-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+      width: 100%;
+    }
+
+    .state-caption {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-align: center;
+      min-height: 1.25rem;
+    }
+
+    .quick-stop-btn {
+      padding: 0.45rem 1.25rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      outline: none;
+      user-select: none;
+      font-family: var(--font-body);
+    }
+
+    .quick-stop-btn.active-stop {
+      background: rgba(244, 63, 94, 0.14);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      box-shadow: 0 0 14px rgba(244, 63, 94, 0.22);
+    }
+
+    .quick-stop-btn.active-stop:hover {
+      background: rgba(244, 63, 94, 0.26);
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .quick-stop-btn.idle-start {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+
+    .quick-stop-btn.idle-start:hover {
+      background: rgba(56, 189, 248, 0.22);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .quick-stop-btn:active {
+      transform: scale(0.96);
+    }
+
+    .quick-stop-btn.btn-pending {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* Conversation Transcript Card — Expanded Flex Column */
     .transcript-card {
       flex: 1;
-      min-height: 360px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
     }
 
     .chat-history {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.8rem;
       padding-right: 0.4rem;
-      max-height: 420px;
     }
 
     .chat-history::-webkit-scrollbar { width: 4px; }
     .chat-history::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 
     .msg-bubble {
-      max-width: 82%;
-      padding: 0.8rem 1.1rem;
+      max-width: 85%;
+      padding: 0.75rem 1rem;
       border-radius: var(--radius-md);
       font-size: 0.88rem;
       line-height: 1.55;
@@ -409,7 +512,7 @@
     }
 
     @keyframes msgIn {
-      from { opacity: 0; transform: translateY(6px); }
+      from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -459,21 +562,22 @@
     .chat-input-bar {
       display: flex;
       gap: 0.6rem;
-      margin-top: 0.85rem;
+      margin-top: 0.75rem;
+      flex-shrink: 0;
     }
 
     /* Telemetry Cards */
     .metrics-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
+      gap: 0.7rem;
     }
 
     .metric-card {
       background: rgba(0, 0, 0, 0.25);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      padding: 0.75rem 0.85rem;
+      padding: 0.7rem 0.85rem;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -514,6 +618,7 @@
     /* Event Stream Terminal */
     .event-log-card {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
     }
@@ -521,7 +626,8 @@
     .filter-tabs {
       display: flex;
       gap: 0.35rem;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.65rem;
+      flex-shrink: 0;
     }
 
     .tab-btn {
@@ -544,13 +650,13 @@
 
     .event-log {
       font-family: var(--font-mono);
-      font-size: 0.72rem;
+      font-size: 0.73rem;
       display: flex;
       flex-direction: column;
       gap: 0.35rem;
-      max-height: 280px;
-      overflow-y: auto;
       flex: 1;
+      min-height: 0;
+      overflow-y: auto;
     }
 
     .event-log::-webkit-scrollbar { width: 4px; }
@@ -571,23 +677,10 @@
     /* Responsive Breakpoints */
     @media (max-width: 1100px) {
       .dashboard-container {
-        grid-template-columns: 290px 1fr;
+        grid-template-columns: 280px 1fr;
       }
-      .event-log-card {
-        grid-column: span 2;
-      }
-    }
-
-    @media (max-width: 768px) {
-      header {
-        padding: 0.8rem 1.2rem;
-      }
-      .dashboard-container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-      }
-      .event-log-card {
-        grid-column: span 1;
+      .col-right {
+        display: none;
       }
     }
   </style>
@@ -596,7 +689,7 @@
 
   <header>
     <div class="brand">
-      <div class="brand-logo" aria-hidden="true">V</div>
+      <div class="brand-logo" aria-hidden="true">J</div>
       <div>
         <div style="display: flex; align-items: center; gap: 0.65rem;">
           <h1 class="brand-title">Jarvis AI</h1>
@@ -619,8 +712,8 @@
 
   <main class="dashboard-container">
     
-    <!-- Left Column: Controls & Engine Tuning -->
-    <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+    <!-- Left Column: Audio Tuning & Voice Controls -->
+    <div class="col-left">
       <section class="panel-card" aria-label="Audio Configuration">
         <div class="panel-header">Audio & Engine Tuning</div>
         <div class="controls-group">
@@ -663,30 +756,41 @@
 
       <section class="panel-card" aria-label="Assistant Controls">
         <div class="panel-header">Assistant Actions</div>
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
           <button class="btn btn-primary" id="btnWakeTrigger">
-            <span>⚡ Trigger Wake ("Hey Jarvis")</span>
+            <span>⚡ Start Listening ("Hey Jarvis")</span>
+          </button>
+
+          <button class="btn btn-warning" id="btnStopListening">
+            <span>🛑 Stop Listening (Go Idle)</span>
           </button>
           
           <button class="btn btn-danger" id="btnInterrupt">
-            <span>🛑 Interrupt / Barge-In</span>
+            <span>🖐️ Interrupt Speech</span>
           </button>
         </div>
       </section>
     </div>
 
     <!-- Center Column: Hero Visualizer & Conversation -->
-    <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+    <div class="col-center">
       <section class="panel-card hero-card" aria-label="Engine Reactor Visualizer">
         <div class="state-badge state-IDLE" id="fsmStateBadge">
           <span>●</span>
           <span id="fsmStateText">IDLE</span>
         </div>
         
-        <canvas id="visualizerCanvas" title="Click reactor canvas to trigger wake word"></canvas>
+        <div class="canvas-container">
+          <canvas id="visualizerCanvas" title="Click reactor to toggle listening"></canvas>
+        </div>
         
-        <div class="state-caption" id="stateSubcaption">
-          Say "Hey Jarvis" or click reactor to start listening
+        <div class="state-caption-container">
+          <span class="state-caption" id="stateSubcaption">
+            Say "Hey Jarvis" or click reactor to start listening
+          </span>
+          <button class="quick-stop-btn idle-start" id="btnQuickStop" title="Click to start voice listening">
+            <span>⚡ Start Listening</span>
+          </button>
         </div>
       </section>
 
@@ -702,7 +806,7 @@
 
         <div class="chat-input-bar">
           <input type="text" class="input-box" id="simulateInput" placeholder="Type prompt to test voice response..." />
-          <button class="btn btn-secondary" id="btnSimulate" style="width: 110px;">
+          <button class="btn btn-secondary" id="btnSimulate" style="width: 105px;">
             <span>Send</span>
           </button>
         </div>
@@ -710,7 +814,7 @@
     </div>
 
     <!-- Right Column: Metrics & Event Log -->
-    <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+    <div class="col-right">
       <section class="panel-card" aria-label="Performance Telemetry">
         <div class="panel-header">Pipeline Telemetry</div>
         <div class="metrics-grid">
@@ -740,14 +844,14 @@
           
           <div class="metric-card">
             <div class="metric-top-row">
-              <span class="metric-lbl">Total Response</span>
+              <span class="metric-lbl">Total Latency</span>
               <div class="metric-dot" id="dotTotal"></div>
             </div>
             <span class="metric-val" id="mTotal">-- ms</span>
           </div>
         </div>
         
-        <div style="margin-top: 0.85rem; text-align: center; font-size: 0.78rem; color: var(--text-muted);">
+        <div style="margin-top: 0.75rem; text-align: center; font-size: 0.78rem; color: var(--text-muted);">
           Barge-In Interrupts: <strong id="mInterrupts" style="color: var(--accent-rose);">0</strong>
         </div>
       </section>
@@ -771,12 +875,12 @@
   </main>
 
   <script>
-    // Canvas & High Performance Visualizer Engine
+    // Canvas & High Performance Acoustic Reactor Engine
     const canvas = document.getElementById('visualizerCanvas');
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = 320 * dpr;
-    canvas.height = 160 * dpr;
+    canvas.width = 300 * dpr;
+    canvas.height = 140 * dpr;
     ctx.scale(dpr, dpr);
 
     let currentFSMState = "IDLE";
@@ -787,25 +891,24 @@
     const stateCaptions = {
       'IDLE': 'Say "Hey Jarvis" or click reactor to start listening',
       'WAKE_DETECTED': '⚡ Wake word detected ("Hey Jarvis")',
-      'LISTENING': '🎙️ Listening... Speak into active microphone',
+      'LISTENING': '🎙️ Listening... Click "Stop Listening" to pause',
       'TRANSCRIBING': '📝 Transcribing voice to text...',
       'THINKING': '🧠 Thinking... Streaming neural response',
-      'SPEAKING': '🔊 Speaking response... (Speak anytime to barge-in)',
+      'SPEAKING': '🔊 Speaking response... (Click interrupt to stop)',
       'ERROR': '⚠️ System Error / Auto-recovering'
     };
 
-    // Minimal Mathematical Acoustic Reactor Render Loop
     function renderVisualizer() {
-      ctx.clearRect(0, 0, 320, 160);
-      const cx = 160;
-      const cy = 80;
+      ctx.clearRect(0, 0, 300, 140);
+      const cx = 150;
+      const cy = 70;
       animTime += 0.035;
 
       if (currentFSMState === 'LISTENING') {
-        // Minimal vector harmonic rings + equalizer bars
+        // Active Listening Emerald Pulse Rings + Harmonic Equalizer
         for (let i = 0; i < 2; i++) {
-          const r = ((animTime * 30 + i * 35) % 65) + 20;
-          const alpha = 1 - (r / 85);
+          const r = ((animTime * 28 + i * 30) % 60) + 18;
+          const alpha = 1 - (r / 78);
           ctx.strokeStyle = `rgba(16, 185, 129, ${alpha * 0.5})`;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
@@ -815,65 +918,63 @@
 
         ctx.fillStyle = '#10b981';
         ctx.beginPath();
-        ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 26, 0, Math.PI * 2);
         ctx.fill();
 
-        // Audio frequency bars
         ctx.fillStyle = '#6ee7b7';
         for (let b = -4; b <= 4; b++) {
           if (b === 0) continue;
-          const h = 8 + Math.sin(animTime * 6 + Math.abs(b) * 1.5) * 14;
-          const x = cx + b * 13;
+          const h = 7 + Math.sin(animTime * 6 + Math.abs(b) * 1.5) * 13;
+          const x = cx + b * 12;
           ctx.beginPath();
           ctx.roundRect(x - 2.5, cy - h / 2, 5, h, 2);
           ctx.fill();
         }
 
       } else if (currentFSMState === 'SPEAKING') {
-        // Continuous minimal sine wave vector oscillator
-        const r = 32 + Math.sin(animTime * 4) * 3;
+        // Rose Vector Sine Wave Oscillator
+        const r = 28 + Math.sin(animTime * 4) * 3;
         ctx.fillStyle = 'rgba(244, 63, 94, 0.15)';
         ctx.beginPath();
-        ctx.arc(cx, cy, r + 15, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r + 14, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = '#f43f5e';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        for (let x = 50; x <= 270; x += 4) {
+        for (let x = 45; x <= 255; x += 4) {
           const y = cy + Math.sin(x * 0.06 + animTime * 8) * 11;
-          if (x === 50) ctx.moveTo(x, y);
+          if (x === 45) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
         ctx.stroke();
 
       } else if (currentFSMState === 'THINKING' || currentFSMState === 'TRANSCRIBING') {
-        // Minimal rotating vector orbits
+        // Rotating Violet Orbitals
         const mainColor = currentFSMState === 'THINKING' ? '#a855f7' : '#c084fc';
         ctx.fillStyle = mainColor;
         ctx.beginPath();
-        ctx.arc(cx, cy, 22 + Math.sin(animTime * 3) * 2, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 20 + Math.sin(animTime * 3) * 2, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = mainColor;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.ellipse(cx, cy, 42, 14, animTime * 2, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, 38, 13, animTime * 2, 0, Math.PI * 2);
         ctx.stroke();
 
       } else if (currentFSMState === 'WAKE_DETECTED') {
-        // Amber pulse shockwave
         ctx.fillStyle = '#f59e0b';
         ctx.beginPath();
-        ctx.arc(cx, cy, 36 + Math.sin(animTime * 8) * 5, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 32 + Math.sin(animTime * 8) * 4, 0, Math.PI * 2);
         ctx.fill();
 
       } else {
-        // Minimal IDLE cyan aura
-        const r = 26 + Math.sin(animTime * 1.5) * 2;
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+        // IDLE State — Subtle Cyan Aura
+        const r = 24 + Math.sin(animTime * 1.5) * 2;
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.1)';
         ctx.beginPath();
-        ctx.arc(cx, cy, r + 12, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r + 11, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = '#38bdf8';
@@ -886,21 +987,107 @@
     }
     renderVisualizer();
 
-    // Canvas Click Trigger
-    canvas.addEventListener('click', async () => {
-      await fetch('/api/trigger-wake', { method: 'POST' });
-      logEvent('TriggerWake', 'Canvas Click ("Hey Jarvis")');
-    });
+    // Active state definition helper
+    function isActiveState(state) {
+      return ['LISTENING', 'WAKE_DETECTED', 'TRANSCRIBING', 'THINKING', 'SPEAKING'].includes(state);
+    }
+
+    let isActionPending = false;
+    let lastActionTime = 0;
+
+    // Action Debouncer & Unified Control Handler
+    async function handleReactorToggle(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const now = Date.now();
+      if (isActionPending || (now - lastActionTime < 400)) {
+        return;
+      }
+      lastActionTime = now;
+      isActionPending = true;
+      setButtonsPendingState(true);
+
+      try {
+        if (isActiveState(currentFSMState)) {
+          await stopListening(e);
+        } else {
+          await startListening(e);
+        }
+      } finally {
+        setTimeout(() => {
+          isActionPending = false;
+          setButtonsPendingState(false);
+        }, 300);
+      }
+    }
+
+    function setButtonsPendingState(pending) {
+      const quickStop = document.getElementById('btnQuickStop');
+      const stopBtn = document.getElementById('btnStopListening');
+      const wakeBtn = document.getElementById('btnWakeTrigger');
+      const intBtn = document.getElementById('btnInterrupt');
+
+      [quickStop, stopBtn, wakeBtn, intBtn].forEach(btn => {
+        if (btn) {
+          if (pending) btn.classList.add('btn-pending');
+          else btn.classList.remove('btn-pending');
+        }
+      });
+    }
+
+    // Reactor Click Listener
+    canvas.addEventListener('click', handleReactorToggle);
+
+    async function startListening(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      try {
+        logEvent('TriggerWake', 'Start Listening Requested');
+        await fetch('/api/trigger-wake', { method: 'POST' });
+      } catch (err) {
+        console.error('Error in startListening:', err);
+      }
+    }
+
+    async function stopListening(e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      // Optimistically set UI state to IDLE immediately
+      updateFSMState('IDLE');
+      try {
+        logEvent('StopListening', 'Listening Paused / Go Idle');
+        await fetch('/api/stop-listening', { method: 'POST' });
+      } catch (err) {
+        console.error('Error in stopListening:', err);
+      }
+    }
 
     function updateFSMState(state) {
       currentFSMState = state;
       const badge = document.getElementById('fsmStateBadge');
       const text = document.getElementById('fsmStateText');
       const subcaption = document.getElementById('stateSubcaption');
+      const quickStop = document.getElementById('btnQuickStop');
+      const stopBtn = document.getElementById('btnStopListening');
 
       badge.className = `state-badge state-${state}`;
       text.innerText = state;
       subcaption.innerText = stateCaptions[state] || stateCaptions['IDLE'];
+
+      const active = isActiveState(state);
+      if (active) {
+        quickStop.innerHTML = '<span>🛑 Stop Assistant</span>';
+        quickStop.className = 'quick-stop-btn active-stop';
+        quickStop.title = 'Click to stop assistant and go idle';
+        canvas.title = 'Click reactor orb to stop assistant';
+        stopBtn.classList.add('active-listening');
+      } else {
+        quickStop.innerHTML = '<span>⚡ Start Listening</span>';
+        quickStop.className = 'quick-stop-btn idle-start';
+        quickStop.title = 'Click to start voice listening';
+        canvas.title = 'Click reactor orb to start listening';
+        stopBtn.classList.remove('active-listening');
+      }
 
       if (state === 'THINKING' || state === 'SPEAKING') {
         if (!activeAssistantBubble) {
@@ -993,7 +1180,7 @@
       });
     });
 
-    // Helper for Metric Status Dots
+    // Metric Status Dot Updater
     function updateMetricDot(elemId, valueMs, targetThresholdMs) {
       const dot = document.getElementById(elemId);
       if (!dot) return;
@@ -1045,7 +1232,8 @@
       }
     }
 
-    // Input Listeners
+    // Controls Event Handlers
+    // 1. Speech Speed Slider Handlers (Live input + API change)
     document.getElementById('ttsSpeedRange').addEventListener('input', (e) => {
       document.getElementById('ttsSpeedVal').innerText = `${parseFloat(e.target.value).toFixed(2)}x`;
     });
@@ -1061,6 +1249,11 @@
       logEvent('UpdatedSettings', `Speech Speed: ${speed.toFixed(2)}x`);
     });
 
+    // 2. VAD Pause Tolerance Slider Handlers (Live input + API change)
+    document.getElementById('silenceRange').addEventListener('input', (e) => {
+      document.getElementById('silenceVal').innerText = `${e.target.value} ms`;
+    });
+
     document.getElementById('silenceRange').addEventListener('change', async (e) => {
       const val = parseInt(e.target.value);
       document.getElementById('silenceVal').innerText = `${val} ms`;
@@ -1072,6 +1265,7 @@
       logEvent('UpdatedSettings', `VAD Pause: ${val} ms`);
     });
 
+    // 3. TTS Voice Selection Handler
     document.getElementById('ttsVoiceSelect').addEventListener('change', async (e) => {
       const voice = e.target.value;
       await fetch('/api/settings', {
@@ -1082,6 +1276,7 @@
       logEvent('UpdatedSettings', `TTS Voice: ${voice}`);
     });
 
+    // 4. Microphone Selection Handler
     document.getElementById('micDeviceSelect').addEventListener('change', async (e) => {
       const idx = e.target.value !== '' ? parseInt(e.target.value) : null;
       await fetch('/api/select-device', {
@@ -1151,15 +1346,59 @@
 
     connectWebSocket();
 
-    // User Button Triggers
-    document.getElementById('btnWakeTrigger').addEventListener('click', async () => {
-      await fetch('/api/trigger-wake', { method: 'POST' });
-      logEvent('TriggerWake', 'Hey Jarvis');
+    // User Action Button Triggers
+    document.getElementById('btnWakeTrigger').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isActionPending && (Date.now() - lastActionTime >= 400)) {
+        lastActionTime = Date.now();
+        isActionPending = true;
+        setButtonsPendingState(true);
+        startListening(e).finally(() => {
+          setTimeout(() => {
+            isActionPending = false;
+            setButtonsPendingState(false);
+          }, 300);
+        });
+      }
     });
 
-    document.getElementById('btnInterrupt').addEventListener('click', async () => {
-      await fetch('/api/interrupt', { method: 'POST' });
-      logEvent('BargeInInterrupt', 'User forced cancellation', 'error');
+    document.getElementById('btnStopListening').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isActionPending && (Date.now() - lastActionTime >= 400)) {
+        lastActionTime = Date.now();
+        isActionPending = true;
+        setButtonsPendingState(true);
+        stopListening(e).finally(() => {
+          setTimeout(() => {
+            isActionPending = false;
+            setButtonsPendingState(false);
+          }, 300);
+        });
+      }
+    });
+
+    document.getElementById('btnQuickStop').addEventListener('click', handleReactorToggle);
+
+    document.getElementById('btnInterrupt').addEventListener('click', async (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (!isActionPending && (Date.now() - lastActionTime >= 400)) {
+        lastActionTime = Date.now();
+        isActionPending = true;
+        setButtonsPendingState(true);
+        try {
+          await fetch('/api/interrupt', { method: 'POST' });
+          logEvent('BargeInInterrupt', 'User forced cancellation', 'error');
+        } catch (err) {
+          console.error('Error in interrupt:', err);
+        } finally {
+          setTimeout(() => {
+            isActionPending = false;
+            setButtonsPendingState(false);
+          }, 300);
+        }
+      }
     });
 
     async function sendUtterance() {
