@@ -88,9 +88,13 @@ class WebDashboardServer:
         """Broadcast payload dictionary to all connected WebSocket clients."""
         for ws in self.sockets.copy():
             try:
-                await ws.send_json(payload)
+                if not ws.closed:
+                    await ws.send_json(payload)
+                else:
+                    self.sockets.discard(ws)
             except Exception:
-                pass
+                self.sockets.discard(ws)
+
 
     async def _on_fsm_state_change(self, from_state: FSMState, to_state: FSMState) -> None:
         await self.broadcast({

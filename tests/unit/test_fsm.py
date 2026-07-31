@@ -57,3 +57,12 @@ async def test_fsm_invalid_transition():
     success = await fsm.transition_to(FSMState.SPEAKING)
     assert not success
     assert fsm.state == FSMState.IDLE
+
+
+@pytest.mark.asyncio
+async def test_fsm_force_transition():
+    fsm = VoiceFSM()
+    await fsm.initialize()  # IDLE
+    await fsm.force_transition_to(FSMState.SPEAKING)
+    assert fsm.state == FSMState.SPEAKING
+

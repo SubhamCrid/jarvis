@@ -6,7 +6,7 @@ import asyncio
 import datetime
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, TypeVar
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Set, Type, TypeVar
 
 logger = logging.getLogger("vidya.core.bus")
 
@@ -100,12 +100,13 @@ EventHandler = Callable[[Any], Awaitable[None]]
 class MessageBus:
     """
     In-memory asynchronous pub/sub message bus routing domain events
-    to subscribed handlers.
+    to subscribed handlers with tracked background task lifecycles.
     """
 
     def __init__(self) -> None:
         self._subscribers: Dict[Type[Any], List[EventHandler]] = {}
         self._global_subscribers: List[EventHandler] = []
+        self._background_tasks: Set[asyncio.Task] = set()
 
     def subscribe(self, event_type: Type[T], handler: Callable[[T], Awaitable[None]]) -> None:
         """Subscribe an asynchronous handler to a specific event type."""
@@ -135,7 +136,9 @@ class MessageBus:
         for handler in handlers:
             try:
                 if asyncio.iscoroutinefunction(handler):
-                    asyncio.create_task(self._safe_execute(handler, event))
+                    task = asyncio.create_task(self._safe_execute(handler, event))
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
                 else:
                     handler(event)
             except Exception as e:
@@ -152,4 +155,5 @@ class MessageBus:
                 f"Async exception in event handler for {type(event).__name__}: {e}",
                 exc_info=True,
             )
+
 

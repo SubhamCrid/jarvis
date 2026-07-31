@@ -126,15 +126,20 @@ def main() -> None:
     args = parser.parse_args()
     command = args.command or "run"
 
-    if command in ("run", "ui"):
-        port = getattr(args, "port", 8000)
-        asyncio.run(run_assistant(getattr(args, "config", None), port=port))
-    elif command == "check-health":
-        asyncio.run(run_health_check())
-    elif command == "test-pipeline":
-        asyncio.run(run_pipeline_test())
+    try:
+        if command in ("run", "ui"):
+            port = getattr(args, "port", 8000)
+            asyncio.run(run_assistant(getattr(args, "config", None), port=port))
+        elif command == "check-health":
+            asyncio.run(run_health_check())
+        elif command == "test-pipeline":
+            asyncio.run(run_pipeline_test())
+    except KeyboardInterrupt:
+        logger.info("Vidya desktop assistant shutdown completed via KeyboardInterrupt.")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
     main()
+
 

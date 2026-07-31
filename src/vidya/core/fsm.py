@@ -80,7 +80,7 @@ class VoiceFSM(BaseServiceProtocol):
             FSMState.ERROR,
             FSMState.STOPPING,
         ],
-        FSMState.ERROR: [FSMState.IDLE, FSMState.STOPPING],
+        FSMState.ERROR: [FSMState.IDLE, FSMState.LISTENING, FSMState.STOPPING],
         FSMState.STOPPING: [FSMState.STOPPING],
     }
 
@@ -124,6 +124,19 @@ class VoiceFSM(BaseServiceProtocol):
 
         return True
 
+    async def force_transition_to(self, target_state: FSMState) -> None:
+        """Forcefully set the FSM state during recovery without checking transition constraints."""
+        async with self._lock:
+            current = self._state
+            self._state = target_state
+            logger.warning(f"[FSM] Force Transition: {current.value} -> {target_state.value}")
+
+        for cb in self._callbacks:
+            try:
+                await cb(current, target_state)
+            except Exception as e:
+                logger.error(f"FSM state notification callback exception: {e}", exc_info=True)
+
     async def initialize(self) -> bool:
         self._status = ServiceStatus.RUNNING
         await self.transition_to(FSMState.IDLE)
@@ -144,6 +157,7 @@ class VoiceFSM(BaseServiceProtocol):
         """Reset state upon task cancellation or user interruption."""
         if self._state == FSMState.SPEAKING:
             await self.transition_to(FSMState.LISTENING)
-        elif self._state in (FSMState.LISTENING, FSMState.TRANSCRIBING, FSMState.THINKING):
-            await self.transition_to(FSMState.IDLE)
+        elif self._state in (FSMState.LISTENING, FSMState.TRANSCRIBING, FSMState.THINKING, FSMState.ERROR):
+            await self.force_transition_to(FSMState.IDLE)
+
 

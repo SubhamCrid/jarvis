@@ -12,7 +12,8 @@ logger = logging.getLogger("vidya.providers.audio.vad")
 
 class VADEngine:
     """
-    Energy & RMS-based VAD engine for real-time speech boundary and endpoint detection.
+    Energy & RMS-based VAD engine with adaptive noise floor estimation for real-time
+    speech boundary and endpoint detection.
     """
 
     def __init__(
@@ -20,7 +21,7 @@ class VADEngine:
         energy_threshold: float = 0.02,
         silence_duration_ms: int = 1800,
         sample_rate: int = 16000,
-        chunk_size: int = 1024
+        chunk_size: int = 1024,
     ) -> None:
         self.energy_threshold = energy_threshold
         self.silence_duration_ms = silence_duration_ms
@@ -30,6 +31,7 @@ class VADEngine:
         self._in_speech: bool = False
         self._silence_start_time_ms: float = 0.0
         self._accumulated_silence_ms: float = 0.0
+        self._noise_floor: float = energy_threshold * 0.5
 
     def calculate_rms(self, pcm_bytes: bytes) -> float:
         """Calculate Root Mean Square (RMS) energy of 16-bit PCM audio bytes."""
@@ -51,7 +53,12 @@ class VADEngine:
         rms = self.calculate_rms(pcm_bytes)
         chunk_duration_ms = (len(pcm_bytes) / (2 * self.sample_rate)) * 1000.0
 
-        is_speech = rms >= self.energy_threshold
+        # Adaptively update background noise floor during silence
+        if not self._in_speech and rms < self.energy_threshold:
+            self._noise_floor = 0.95 * self._noise_floor + 0.05 * rms
+
+        effective_threshold = max(self.energy_threshold, self._noise_floor * 2.2)
+        is_speech = rms >= effective_threshold
         speech_ended = False
 
         if is_speech:
@@ -71,8 +78,10 @@ class VADEngine:
             "speech_ended": speech_ended,
             "silence_ms": self._accumulated_silence_ms,
             "rms": rms,
+            "effective_threshold": effective_threshold,
         }
 
     def reset(self) -> None:
         self._in_speech = False
         self._accumulated_silence_ms = 0.0
+

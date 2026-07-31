@@ -49,3 +49,20 @@ async def test_message_bus_multiple_schemas(message_bus: MessageBus):
     await asyncio.sleep(0.05)
 
     assert tokens == ["Hello", " world"]
+
+
+@pytest.mark.asyncio
+async def test_message_bus_background_task_tracking(message_bus: MessageBus):
+    executed = asyncio.Event()
+
+    async def slow_handler(event: SpeechStarted):
+        await asyncio.sleep(0.01)
+        executed.set()
+
+    message_bus.subscribe(SpeechStarted, slow_handler)
+    await message_bus.publish(SpeechStarted())
+
+    await asyncio.wait_for(executed.wait(), timeout=1.0)
+    await asyncio.sleep(0.02)
+    assert len(message_bus._background_tasks) == 0
+
