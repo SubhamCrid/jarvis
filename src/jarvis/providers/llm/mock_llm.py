@@ -4,10 +4,10 @@ MockLLM provider for unit tests and local execution without active model endpoin
 
 import asyncio
 from typing import AsyncGenerator, Optional, List, Dict
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import LLMProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import LLMProtocol
+from jarvis.providers.registry import register_provider
 
 
 @register_provider("llm", "mock")
@@ -18,7 +18,7 @@ class MockLLM(LLMProtocol):
     def from_config(cls, config: AppConfig) -> "MockLLM":
         return cls()
 
-    def __init__(self, response: str = "I am Vidya, your local voice assistant. How can I help you today?") -> None:
+    def __init__(self, response: str = "I am Jarvis, your local voice assistant. How can I help you today?") -> None:
         self.response = response
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
         self._cancelled: bool = False

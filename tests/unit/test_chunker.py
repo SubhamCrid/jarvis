@@ -2,7 +2,7 @@
 Unit tests for SentenceChunker.
 """
 
-from vidya.providers.chunker import SentenceChunker
+from jarvis.providers.chunker import SentenceChunker
 
 
 def test_sentence_chunker_delimiter_split():

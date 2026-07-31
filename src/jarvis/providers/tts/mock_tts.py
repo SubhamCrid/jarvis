@@ -4,10 +4,10 @@ MockTTS provider for fast testing without speech synthesis hardware/binary depen
 
 import asyncio
 from typing import AsyncGenerator
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import TTSProtocol, AudioChunk
-from vidya.providers.registry import register_provider
+from jarvis.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import TTSProtocol, AudioChunk
+from jarvis.providers.registry import register_provider
 
 
 @register_provider("tts", "mock")

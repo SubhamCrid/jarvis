@@ -1,15 +1,15 @@
 """
-OpenWakeWord detector provider for local wake word detection ("Vidya").
+OpenWakeWord detector provider for local wake word detection ("Jarvis").
 """
 
 import logging
 import numpy as np
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import WakeWordProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import WakeWordProtocol
+from jarvis.providers.registry import register_provider
 
-logger = logging.getLogger("vidya.providers.wakeword.openwakeword")
+logger = logging.getLogger("jarvis.providers.wakeword.openwakeword")
 
 
 @register_provider("wakeword", "openwakeword")
@@ -26,7 +26,7 @@ class OpenWakeWordProvider(WakeWordProtocol):
             threshold=config.wakeword.threshold,
         )
 
-    def __init__(self, model_name: str = "vidya", threshold: float = 0.5) -> None:
+    def __init__(self, model_name: str = "jarvis", threshold: float = 0.5) -> None:
         self.model_name = model_name
         self.threshold = threshold
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED

@@ -4,9 +4,9 @@ Unit tests for AudioSessionManager, VADEngine, and MockAudioSession.
 
 import pytest
 import asyncio
-from vidya.providers.audio.vad import VADEngine
-from vidya.providers.audio.mock_audio import MockAudioSession
-from vidya.providers.base import AudioChunk
+from jarvis.providers.audio.vad import VADEngine
+from jarvis.providers.audio.mock_audio import MockAudioSession
+from jarvis.providers.base import AudioChunk
 
 
 @pytest.mark.asyncio

@@ -5,12 +5,12 @@ EdgeTTS provider for natural, free online streaming speech synthesis.
 import asyncio
 import logging
 from typing import AsyncGenerator
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import TTSProtocol, AudioChunk
-from vidya.providers.registry import register_provider
+from jarvis.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import TTSProtocol, AudioChunk
+from jarvis.providers.registry import register_provider
 
-logger = logging.getLogger("vidya.providers.tts.edge_tts")
+logger = logging.getLogger("jarvis.providers.tts.edge_tts")
 
 
 @register_provider("tts", "edge_tts")

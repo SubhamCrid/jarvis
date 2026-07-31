@@ -3,9 +3,9 @@ Unit tests for WebDashboardServer static dashboard and WebSocket endpoints.
 """
 
 import pytest
-from vidya.core.config.loader import load_config
-from vidya.orchestrator import AssistantOrchestrator
-from vidya.web.server import WebDashboardServer
+from jarvis.core.config.loader import load_config
+from jarvis.orchestrator import AssistantOrchestrator
+from jarvis.web.server import WebDashboardServer
 
 
 @pytest.mark.asyncio

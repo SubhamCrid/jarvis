@@ -4,7 +4,7 @@ Unit tests for MessageBus and event schemas.
 
 import pytest
 import asyncio
-from vidya.core.bus import (
+from jarvis.core.bus import (
     MessageBus,
     WakeDetected,
     SpeechStarted,

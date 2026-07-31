@@ -2,10 +2,10 @@
 MockWakeWord provider for testing wake word detection and automated triggers.
 """
 
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import WakeWordProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import WakeWordProtocol
+from jarvis.providers.registry import register_provider
 
 
 @register_provider("wakeword", "mock")

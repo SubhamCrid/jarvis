@@ -10,12 +10,12 @@ import re
 from typing import Any, AsyncGenerator, Dict, List, Optional
 import aiohttp
 
-from vidya.core.base import HealthStatus, ServiceStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import LLMProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import HealthStatus, ServiceStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import LLMProtocol
+from jarvis.providers.registry import register_provider
 
-logger = logging.getLogger("vidya.providers.llm.ollama")
+logger = logging.getLogger("jarvis.providers.llm.ollama")
 
 
 @register_provider("llm", "ollama")
@@ -38,7 +38,7 @@ class OllamaLLM(LLMProtocol):
         model: str = "hermes3:3b",
         base_url: str = "http://localhost:11434",
         system_prompt: str = (
-            "You are Vidya, a helpful local voice assistant. "
+            "You are Jarvis, a helpful local voice assistant. "
             "Keep all responses brief (1 to 2 sentences maximum), clear, and natural for speech synthesis."
         ),
         temperature: float = 0.7,

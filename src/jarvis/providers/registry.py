@@ -5,9 +5,9 @@ Central ProviderRegistry and decorator for dynamic plug-and-play AI and hardware
 import logging
 from typing import Any, Callable, Dict, List, Optional, Type
 
-from vidya.core.config.schema import AppConfig
+from jarvis.core.config.schema import AppConfig
 
-logger = logging.getLogger("vidya.providers.registry")
+logger = logging.getLogger("jarvis.providers.registry")
 
 
 class ProviderRegistry:
@@ -24,19 +24,19 @@ class ProviderRegistry:
         if not cls._loaded_builtins:
             cls._loaded_builtins = True
             builtin_modules = [
-                "vidya.providers.audio.mock_audio",
-                "vidya.providers.audio.sounddevice_session",
-                "vidya.providers.llm.mock_llm",
-                "vidya.providers.llm.ollama_llm",
-                "vidya.providers.storage.session_store",
-                "vidya.providers.stt.faster_whisper_stt",
-                "vidya.providers.stt.mock_stt",
-                "vidya.providers.stt.whisper_cpp_stt",
-                "vidya.providers.tts.edge_tts_provider",
-                "vidya.providers.tts.mock_tts",
-                "vidya.providers.tts.piper_tts",
-                "vidya.providers.wakeword.mock_wakeword",
-                "vidya.providers.wakeword.openwakeword_provider",
+                "jarvis.providers.audio.mock_audio",
+                "jarvis.providers.audio.sounddevice_session",
+                "jarvis.providers.llm.mock_llm",
+                "jarvis.providers.llm.ollama_llm",
+                "jarvis.providers.storage.session_store",
+                "jarvis.providers.stt.faster_whisper_stt",
+                "jarvis.providers.stt.mock_stt",
+                "jarvis.providers.stt.whisper_cpp_stt",
+                "jarvis.providers.tts.edge_tts_provider",
+                "jarvis.providers.tts.mock_tts",
+                "jarvis.providers.tts.piper_tts",
+                "jarvis.providers.wakeword.mock_wakeword",
+                "jarvis.providers.wakeword.openwakeword_provider",
             ]
             import importlib
             for mod_name in builtin_modules:

@@ -3,8 +3,8 @@ DesktopCapability placeholder for future desktop automation expansion.
 """
 
 from typing import Dict, Any
-from vidya.capabilities.base import BaseCapability, PermissionEnum
-from vidya.core.base import ServiceStatus, HealthStatus
+from jarvis.capabilities.base import BaseCapability, PermissionEnum
+from jarvis.core.base import ServiceStatus, HealthStatus
 
 
 class DesktopCapability(BaseCapability):

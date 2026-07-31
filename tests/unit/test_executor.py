@@ -4,8 +4,8 @@ Unit tests for TaskExecutor.
 
 import pytest
 import asyncio
-from vidya.core.planner import Plan, PlanStep
-from vidya.core.executor import TaskExecutor, ExecutionCancelledException
+from jarvis.core.planner import Plan, PlanStep
+from jarvis.core.executor import TaskExecutor, ExecutionCancelledException
 
 
 class MockCapabilityRegistry:

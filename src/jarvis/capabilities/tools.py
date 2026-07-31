@@ -4,7 +4,7 @@ ToolProtocol and BaseTool abstraction for single executable action units compose
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-from vidya.core.base import BaseServiceProtocol
+from jarvis.core.base import BaseServiceProtocol
 
 
 class ToolProtocol(BaseServiceProtocol, ABC):

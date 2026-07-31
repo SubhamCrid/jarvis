@@ -6,9 +6,9 @@ import asyncio
 import logging
 from typing import Any, Optional
 
-from vidya.core.planner import Plan
+from jarvis.core.planner import Plan
 
-logger = logging.getLogger("vidya.core.executor")
+logger = logging.getLogger("jarvis.core.executor")
 
 
 class ExecutionCancelledException(Exception):

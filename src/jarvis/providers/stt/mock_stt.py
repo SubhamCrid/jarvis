@@ -4,10 +4,10 @@ MockSTT provider for fast, reproducible unit testing without model inference.
 
 import asyncio
 from typing import Optional
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import STTProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import STTProtocol
+from jarvis.providers.registry import register_provider
 
 
 @register_provider("stt", "mock")
@@ -18,7 +18,7 @@ class MockSTT(STTProtocol):
     def from_config(cls, config: AppConfig) -> "MockSTT":
         return cls()
 
-    def __init__(self, response_text: str = "Hello Vidya, how are you?") -> None:
+    def __init__(self, response_text: str = "Hello Jarvis, how are you?") -> None:
         self.response_text = response_text
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
 

@@ -3,8 +3,8 @@ BrowserCapability placeholder for future browser automation expansion.
 """
 
 from typing import Dict, Any
-from vidya.capabilities.base import BaseCapability, PermissionEnum
-from vidya.core.base import ServiceStatus, HealthStatus
+from jarvis.capabilities.base import BaseCapability, PermissionEnum
+from jarvis.core.base import ServiceStatus, HealthStatus
 
 
 class BrowserCapability(BaseCapability):

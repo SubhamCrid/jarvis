@@ -3,7 +3,7 @@ Unit tests for VoiceFSM state machine and barge-in state transitions.
 """
 
 import pytest
-from vidya.core.fsm import VoiceFSM, FSMState
+from jarvis.core.fsm import VoiceFSM, FSMState
 
 
 @pytest.mark.asyncio

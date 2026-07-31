@@ -1,17 +1,17 @@
 """
-Pytest configuration and fixtures for Vidya unit tests.
+Pytest configuration and fixtures for Jarvis unit tests.
 """
 
 import pytest
 import asyncio
 from pathlib import Path
-from vidya.core.config.loader import load_config
-from vidya.core.config.schema import AppConfig
-from vidya.core.bus import MessageBus
-from vidya.core.task_manager import TaskManager
-from vidya.core.planner import SimplePlanner
-from vidya.core.executor import TaskExecutor
-from vidya.core.observability import ObservabilityService
+from jarvis.core.config.loader import load_config
+from jarvis.core.config.schema import AppConfig
+from jarvis.core.bus import MessageBus
+from jarvis.core.task_manager import TaskManager
+from jarvis.core.planner import SimplePlanner
+from jarvis.core.executor import TaskExecutor
+from jarvis.core.observability import ObservabilityService
 
 
 @pytest.fixture

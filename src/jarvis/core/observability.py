@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 import logging
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger("vidya.core.observability")
+logger = logging.getLogger("jarvis.core.observability")
 
 
 @dataclass

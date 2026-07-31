@@ -1,5 +1,5 @@
 """
-CLI entry point and runtime runner for Vidya local voice assistant engine and web dashboard.
+CLI entry point and runtime runner for Jarvis local voice assistant engine and web dashboard.
 """
 
 import argparse
@@ -9,12 +9,12 @@ import signal
 import sys
 from typing import Optional
 
-from vidya.core.config.loader import load_config
-from vidya.orchestrator import AssistantOrchestrator
-from vidya.utils.logger import setup_logger
-from vidya.web.server import WebDashboardServer
+from jarvis.core.config.loader import load_config
+from jarvis.orchestrator import AssistantOrchestrator
+from jarvis.utils.logger import setup_logger
+from jarvis.web.server import WebDashboardServer
 
-logger = logging.getLogger("vidya.main")
+logger = logging.getLogger("jarvis.main")
 
 
 async def run_assistant(config_file: Optional[str] = None, port: int = 8000) -> None:
@@ -24,14 +24,14 @@ async def run_assistant(config_file: Optional[str] = None, port: int = 8000) -> 
 
     orchestrator = AssistantOrchestrator(config)
     if not await orchestrator.initialize():
-        logger.error("Failed to initialize Vidya Assistant orchestrator.")
+        logger.error("Failed to initialize Jarvis Assistant orchestrator.")
         return
 
     web_server = WebDashboardServer(orchestrator, port=port)
     await web_server.start()
 
     print("\n" + "=" * 60)
-    print("  VIDYA LOCAL VOICE ASSISTANT ENGINE")
+    print("  JARVIS LOCAL VOICE ASSISTANT ENGINE")
     print(f"  Web Dashboard Active at: http://localhost:{port}")
     print(f"  Listening for wake word: '{config.wakeword.model_name}'")
     print("=" * 60 + "\n")
@@ -58,7 +58,7 @@ async def run_assistant(config_file: Optional[str] = None, port: int = 8000) -> 
     finally:
         await web_server.stop()
         await orchestrator.shutdown()
-        logger.info("Vidya desktop assistant stopped cleanly.")
+        logger.info("Jarvis desktop assistant stopped cleanly.")
 
 
 async def run_health_check() -> None:
@@ -66,13 +66,13 @@ async def run_health_check() -> None:
     config = load_config()
     setup_logger(log_level="INFO", log_dir=f"{config.system.data_dir}/logs")
 
-    logger.info("Running Vidya system health check...")
+    logger.info("Running Jarvis system health check...")
     orchestrator = AssistantOrchestrator(config)
     await orchestrator.initialize()
 
     health = await orchestrator.health()
     print("\n" + "=" * 50)
-    print(f"VIDYA SYSTEM HEALTH: {health.status.value.upper()}")
+    print(f"JARVIS SYSTEM HEALTH: {health.status.value.upper()}")
     print(f"Message: {health.message}")
     print("Details:")
     for k, v in health.details.items():
@@ -110,7 +110,7 @@ async def run_pipeline_test() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Vidya Local Voice Assistant Engine")
+    parser = argparse.ArgumentParser(description="Jarvis Local Voice Assistant Engine")
     subparsers = parser.add_subparsers(dest="command", help="Sub-command to run")
 
     run_parser = subparsers.add_parser("run", help="Run active voice assistant with Web UI")
@@ -135,7 +135,7 @@ def main() -> None:
         elif command == "test-pipeline":
             asyncio.run(run_pipeline_test())
     except KeyboardInterrupt:
-        logger.info("Vidya desktop assistant shutdown completed via KeyboardInterrupt.")
+        logger.info("Jarvis desktop assistant shutdown completed via KeyboardInterrupt.")
         sys.exit(0)
 
 

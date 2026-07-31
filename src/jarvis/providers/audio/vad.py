@@ -7,7 +7,7 @@ import struct
 import logging
 from typing import Dict, Any
 
-logger = logging.getLogger("vidya.providers.audio.vad")
+logger = logging.getLogger("jarvis.providers.audio.vad")
 
 
 class VADEngine:

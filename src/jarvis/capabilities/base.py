@@ -5,7 +5,7 @@ Base Capability protocol and Permission definitions.
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Dict, Any, Optional
-from vidya.core.base import BaseServiceProtocol
+from jarvis.core.base import BaseServiceProtocol
 
 
 class PermissionEnum(str, Enum):

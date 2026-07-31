@@ -7,13 +7,13 @@ import asyncio
 import logging
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
-from vidya.core.base import HealthStatus, ServiceStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import AudioChunk, AudioSessionProtocol
-from vidya.providers.registry import register_provider
-from vidya.utils.async_utils import BoundedQueue, safe_cancel_task
+from jarvis.core.base import HealthStatus, ServiceStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import AudioChunk, AudioSessionProtocol
+from jarvis.providers.registry import register_provider
+from jarvis.utils.async_utils import BoundedQueue, safe_cancel_task
 
-logger = logging.getLogger("vidya.providers.audio.sounddevice_session")
+logger = logging.getLogger("jarvis.providers.audio.sounddevice_session")
 
 AudioSubscriber = Callable[[bytes], Awaitable[None]]
 

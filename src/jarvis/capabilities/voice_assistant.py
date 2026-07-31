@@ -10,9 +10,9 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 
-from vidya.capabilities.base import BaseCapability, PermissionEnum
-from vidya.core.base import HealthStatus, ServiceStatus
-from vidya.core.bus import (
+from jarvis.capabilities.base import BaseCapability, PermissionEnum
+from jarvis.core.base import HealthStatus, ServiceStatus
+from jarvis.core.bus import (
     AudioChunkReady,
     ErrorOccurred,
     MessageBus,
@@ -25,10 +25,10 @@ from vidya.core.bus import (
     TranscriptReady,
     WakeDetected,
 )
-from vidya.core.fsm import FSMState, VoiceFSM
-from vidya.core.observability import ObservabilityService
-from vidya.providers.audio.vad import VADEngine
-from vidya.providers.base import (
+from jarvis.core.fsm import FSMState, VoiceFSM
+from jarvis.core.observability import ObservabilityService
+from jarvis.providers.audio.vad import VADEngine
+from jarvis.providers.base import (
     AudioSessionProtocol,
     LLMProtocol,
     STTProtocol,
@@ -36,13 +36,13 @@ from vidya.providers.base import (
     TTSProtocol,
     WakeWordProtocol,
 )
-from vidya.providers.chunker import SentenceChunker
-from vidya.utils.async_utils import BoundedQueue, safe_cancel_task
+from jarvis.providers.chunker import SentenceChunker
+from jarvis.utils.async_utils import BoundedQueue, safe_cancel_task
 
-logger = logging.getLogger("vidya.capabilities.voice_assistant")
+logger = logging.getLogger("jarvis.capabilities.voice_assistant")
 
 _WAKE_PREFIX_PATTERN = re.compile(
-    r"^(?:hey\s+jarvis|jarvis|hello\s+jarvis|hey\s+vidya|vidya|hello\s+vidya)[\s,.:;!?]*",
+    r"^(?:hey\s+jarvis|jarvis|hello\s+jarvis|hey\s+jarvis|jarvis|hello\s+jarvis)[\s,.:;!?]*",
     re.IGNORECASE,
 )
 

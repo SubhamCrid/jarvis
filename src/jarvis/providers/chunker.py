@@ -6,7 +6,7 @@ import re
 import logging
 from typing import List, Optional
 
-logger = logging.getLogger("vidya.providers.chunker")
+logger = logging.getLogger("jarvis.providers.chunker")
 
 
 class SentenceChunker:

@@ -1,5 +1,5 @@
 """
-Typed message bus and event schema definitions for the Vidya framework.
+Typed message bus and event schema definitions for the Jarvis framework.
 """
 
 import asyncio
@@ -8,7 +8,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Set, Type, TypeVar
 
-logger = logging.getLogger("vidya.core.bus")
+logger = logging.getLogger("jarvis.core.bus")
 
 
 def current_iso_timestamp() -> str:

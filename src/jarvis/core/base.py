@@ -1,5 +1,5 @@
 """
-Base service protocols and lifecycle contracts for the Vidya framework.
+Base service protocols and lifecycle contracts for the Jarvis framework.
 """
 
 import datetime

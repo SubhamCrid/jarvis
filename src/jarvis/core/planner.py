@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List
 import uuid
 
-from vidya.core.task_manager import Task
+from jarvis.core.task_manager import Task
 
 
 @dataclass

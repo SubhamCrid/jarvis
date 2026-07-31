@@ -2,8 +2,8 @@
 Unit tests for Planner and SimplePlanner.
 """
 
-from vidya.core.task_manager import Task
-from vidya.core.planner import SimplePlanner, Plan
+from jarvis.core.task_manager import Task
+from jarvis.core.planner import SimplePlanner, Plan
 
 
 def test_simple_planner_voice_task(planner: SimplePlanner):

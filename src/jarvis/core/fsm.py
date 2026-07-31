@@ -7,9 +7,9 @@ import logging
 from enum import Enum
 from typing import Awaitable, Callable, Dict, List
 
-from vidya.core.base import BaseServiceProtocol, HealthStatus, ServiceStatus
+from jarvis.core.base import BaseServiceProtocol, HealthStatus, ServiceStatus
 
-logger = logging.getLogger("vidya.core.fsm")
+logger = logging.getLogger("jarvis.core.fsm")
 
 
 class FSMState(str, Enum):

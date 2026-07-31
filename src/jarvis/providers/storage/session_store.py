@@ -10,12 +10,12 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from vidya.core.base import HealthStatus, ServiceStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import StorageProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import HealthStatus, ServiceStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import StorageProtocol
+from jarvis.providers.registry import register_provider
 
-logger = logging.getLogger("vidya.providers.storage.session_store")
+logger = logging.getLogger("jarvis.providers.storage.session_store")
 
 
 @register_provider("storage", "sqlite")
@@ -27,9 +27,9 @@ class SQLiteSessionStore(StorageProtocol):
 
     @classmethod
     def from_config(cls, config: AppConfig) -> "SQLiteSessionStore":
-        return cls(db_path=f"{config.system.data_dir}/sessions/vidya.db")
+        return cls(db_path=f"{config.system.data_dir}/sessions/jarvis.db")
 
-    def __init__(self, db_path: str = "data/sessions/vidya.db") -> None:
+    def __init__(self, db_path: str = "data/sessions/jarvis.db") -> None:
         self.db_path = Path(db_path)
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
 

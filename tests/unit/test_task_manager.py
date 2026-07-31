@@ -2,7 +2,7 @@
 Unit tests for TaskManager and Task lifecycle.
 """
 
-from vidya.core.task_manager import TaskManager, TaskStatus
+from jarvis.core.task_manager import TaskManager, TaskStatus
 
 
 def test_task_lifecycle(task_manager: TaskManager):

@@ -6,7 +6,7 @@ import asyncio
 import logging
 from typing import TypeVar, Generic, Optional, List
 
-logger = logging.getLogger("vidya.utils.async_utils")
+logger = logging.getLogger("jarvis.utils.async_utils")
 
 T = TypeVar("T")
 

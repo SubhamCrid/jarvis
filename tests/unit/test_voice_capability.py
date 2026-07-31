@@ -4,10 +4,10 @@ Unit & Integration tests for VoiceAssistantCapability, pipeline, and barge-in in
 
 import pytest
 import asyncio
-from vidya.core.config.loader import load_config
-from vidya.orchestrator import AssistantOrchestrator
-from vidya.core.fsm import FSMState
-from vidya.core.bus import WakeDetected, TranscriptReady, TokenGenerated, SentenceReady
+from jarvis.core.config.loader import load_config
+from jarvis.orchestrator import AssistantOrchestrator
+from jarvis.core.fsm import FSMState
+from jarvis.core.bus import WakeDetected, TranscriptReady, TokenGenerated, SentenceReady
 
 
 @pytest.mark.asyncio

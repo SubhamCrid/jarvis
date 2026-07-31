@@ -1,6 +1,6 @@
-# Vidya - Local-First Desktop Voice Assistant Engine
+# Jarvis - Local-First Desktop Voice Assistant Engine
 
-**Vidya** is a low-latency, modular, local-first desktop voice assistant framework optimized for low VRAM (6 GB VRAM target). It features an always-on wake word detector ("Vidya"), finite-state machine (FSM) voice pipeline, instantaneous **barge-in / interruption** support, streaming STT/LLM/TTS, unified session persistence, typed message bus, task executor, capability registry, and focused performance observability.
+**Jarvis** is a low-latency, modular, local-first desktop voice assistant framework optimized for low VRAM (6 GB VRAM target). It features an always-on wake word detector ("Jarvis"), finite-state machine (FSM) voice pipeline, instantaneous **barge-in / interruption** support, streaming STT/LLM/TTS, unified session persistence, typed message bus, task executor, capability registry, and focused performance observability.
 
 ---
 
@@ -16,7 +16,7 @@
   - **LLM**: Direct pluggable `LLMProtocol` supporting `OllamaLLM`, `LlamaCppLLM`, `OpenAILLM`, `GroqLLM`, and `MockLLM`.
   - **Wake Word**: `OpenWakeWordProvider` and `MockWakeWord`.
 - **Capability & Tool Abstraction (`CapabilityRegistry`, `ToolProtocol`)**: Voice capabilities implemented via `VoiceAssistantCapability`, with placeholder contracts ready for future expansion (`BrowserCapability`, `DesktopCapability`).
-- **Unified Session Store (`SQLiteSessionStore`)**: Persists conversation history, turns, task states, metrics, and recordings in `data/sessions/vidya.db`.
+- **Unified Session Store (`SQLiteSessionStore`)**: Persists conversation history, turns, task states, metrics, and recordings in `data/sessions/jarvis.db`.
 - **Focused Observability (`ObservabilityService`)**: Tracks operational latencies (`wake_latency`, `stt_latency`, `ttft`, `tts_first_audio`, `total_response_latency`) and cancellation counts.
 
 ---
@@ -24,7 +24,7 @@
 ## Directory Structure
 
 ```
-vidya/
+jarvis/
 ├── config/
 │   ├── default.yaml           # Base default configuration (version: 1.0)
 │   ├── development.yaml       # Development overrides
@@ -35,7 +35,7 @@ vidya/
 │   ├── logs/                  # Rotating log files
 │   └── models/                # Downloaded model files (whisper.cpp, Piper)
 ├── src/
-│   └── vidya/
+│   └── jarvis/
 │       ├── orchestrator.py    # Thin AssistantOrchestrator
 │       ├── core/              # Framework Foundation (MessageBus, FSM, TaskManager, Planner, Executor, Observability, Config)
 │       ├── providers/         # Swappable Service Providers (STT, LLM, TTS, WakeWord, AudioSession, SessionStore)
@@ -51,14 +51,14 @@ vidya/
 
 ### 1. Installation
 
-Install Vidya in editable mode:
+Install Jarvis in editable mode:
 ```bash
 pip install -e .
 ```
 
 ### 2. Configuration
 
-Hierarchy: `default.yaml` → `development.yaml` / `production.yaml` → `user.yaml` → Environment Variables (`VIDYA_*`).
+Hierarchy: `default.yaml` → `development.yaml` / `production.yaml` → `user.yaml` → Environment Variables (`JARVIS_*`).
 
 Copy the example configuration to customize local providers:
 ```bash
@@ -67,24 +67,24 @@ cp config/user.yaml.example config/user.yaml
 
 Environment variable override example:
 ```bash
-export VIDYA_LLM__MODEL="llama3.2:3b"
+export JARVIS_LLM__MODEL="llama3.2:3b"
 ```
 
 ### 3. CLI Commands
 
 - **Run Synthetic Pipeline Test**:
   ```bash
-  python -m vidya.main test-pipeline
+  python -m jarvis.main test-pipeline
   ```
 
 - **Check System Health**:
   ```bash
-  python -m vidya.main check-health
+  python -m jarvis.main check-health
   ```
 
 - **Run Active Voice Assistant**:
   ```bash
-  python -m vidya.main run
+  python -m jarvis.main run
   ```
 
 ---

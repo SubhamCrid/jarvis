@@ -3,10 +3,10 @@ Unit tests for ProviderRegistry, decorator registration, factory instantiation, 
 """
 
 import pytest
-from vidya.core.config.schema import AppConfig
-from vidya.providers import ProviderRegistry, register_provider
-from vidya.providers.base import LLMProtocol
-from vidya.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers import ProviderRegistry, register_provider
+from jarvis.providers.base import LLMProtocol
+from jarvis.core.base import ServiceStatus, HealthStatus
 from typing import AsyncGenerator, Optional, List, Dict
 
 

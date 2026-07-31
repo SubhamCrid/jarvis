@@ -1,5 +1,5 @@
 """
-Structured Logging Utility for Vidya.
+Structured Logging Utility for Jarvis.
 """
 
 import sys
@@ -13,7 +13,7 @@ def setup_logger(log_level: str = "INFO", log_dir: str = "data/logs") -> logging
     path = Path(log_dir)
     path.mkdir(parents=True, exist_ok=True)
 
-    root_logger = logging.getLogger("vidya")
+    root_logger = logging.getLogger("jarvis")
     root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
 
     # Remove existing handlers to avoid duplicate logs
@@ -31,7 +31,7 @@ def setup_logger(log_level: str = "INFO", log_dir: str = "data/logs") -> logging
     root_logger.addHandler(console_handler)
 
     # File Handler
-    log_file = path / "vidya.log"
+    log_file = path / "jarvis.log"
     file_handler = RotatingFileHandler(
         log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
     )

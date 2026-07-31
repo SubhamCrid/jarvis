@@ -4,9 +4,9 @@ CapabilityRegistry for storing and looking up assistant capabilities.
 
 import logging
 from typing import Dict, Optional, List
-from vidya.capabilities.base import BaseCapability
+from jarvis.capabilities.base import BaseCapability
 
-logger = logging.getLogger("vidya.capabilities.registry")
+logger = logging.getLogger("jarvis.capabilities.registry")
 
 
 class CapabilityRegistry:

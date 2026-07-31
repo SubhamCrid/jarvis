@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 import yaml
 
-from vidya.core.config.schema import AppConfig
+from jarvis.core.config.schema import AppConfig
 
 
 def deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
@@ -33,10 +33,10 @@ def migrate_config(data: Dict[str, Any]) -> Dict[str, Any]:
 
 def apply_env_overrides(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Override configuration properties via environment variables starting with VIDYA_.
-    Example: VIDYA_LLM__MODEL=qwen2.5 overrides data['llm']['model'].
+    Override configuration properties via environment variables starting with JARVIS_.
+    Example: JARVIS_LLM__MODEL=qwen2.5 overrides data['llm']['model'].
     """
-    prefix = "VIDYA_"
+    prefix = "JARVIS_"
     for env_key, env_val in os.environ.items():
         if not env_key.startswith(prefix):
             continue
@@ -77,7 +77,7 @@ def load_config(
     2. {env}.yaml (development / production / test)
     3. user.yaml
     4. Explicit programmatic user_overrides dictionary
-    5. Environment variable overrides (VIDYA_*)
+    5. Environment variable overrides (JARVIS_*)
     """
     if config_dir is None:
         possible_dirs = [
@@ -100,7 +100,7 @@ def load_config(
             merged_data = yaml.safe_load(f) or {}
 
     if env is None:
-        env = os.getenv("VIDYA_ENV", merged_data.get("system", {}).get("environment", "development"))
+        env = os.getenv("JARVIS_ENV", merged_data.get("system", {}).get("environment", "development"))
 
     env_file = config_dir / f"{env}.yaml"
     if env_file.exists():

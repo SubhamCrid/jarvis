@@ -2,7 +2,7 @@
 Unit tests for ObservabilityService.
 """
 
-from vidya.core.observability import ObservabilityService
+from jarvis.core.observability import ObservabilityService
 
 
 def test_observability_metrics(observability: ObservabilityService):

@@ -10,17 +10,17 @@ from typing import Any, Dict, Optional, Set
 
 from aiohttp import web
 
-from vidya.core.bus import (
+from jarvis.core.bus import (
     SentenceReady,
     TaskCancelled,
     TokenGenerated,
     TranscriptReady,
     WakeDetected,
 )
-from vidya.core.fsm import FSMState
-from vidya.orchestrator import AssistantOrchestrator
+from jarvis.core.fsm import FSMState
+from jarvis.orchestrator import AssistantOrchestrator
 
-logger = logging.getLogger("vidya.web.server")
+logger = logging.getLogger("jarvis.web.server")
 
 
 class WebDashboardServer:
@@ -124,7 +124,7 @@ class WebDashboardServer:
             self.orchestrator.voice_capability.vad.reset()
             import time
             self.orchestrator.voice_capability._listening_start_time = time.perf_counter()
-        await self.orchestrator.bus.publish(WakeDetected(score=1.0, model_name="hey_vidya"))
+        await self.orchestrator.bus.publish(WakeDetected(score=1.0, model_name="hey_jarvis"))
         await self.orchestrator.fsm.transition_to(FSMState.WAKE_DETECTED)
         await self.orchestrator.fsm.transition_to(FSMState.LISTENING)
         return web.json_response({"status": "wake_triggered"})
@@ -204,7 +204,7 @@ class WebDashboardServer:
         await self._runner.setup()
         site = web.TCPSite(self._runner, "0.0.0.0", self.port)
         await site.start()
-        logger.info(f"Vidya web dashboard active at http://localhost:{self.port}")
+        logger.info(f"Jarvis web dashboard active at http://localhost:{self.port}")
 
     async def stop(self) -> None:
         """Stop and cleanup HTTP server runner."""

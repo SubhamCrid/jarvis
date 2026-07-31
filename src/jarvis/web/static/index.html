@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vidya Engine — Local Desktop Voice Assistant</title>
-  <meta name="description" content="Professional low-latency real-time voice assistant orchestrator dashboard for Vidya Engine.">
+  <title>Jarvis Engine — Local Desktop Voice Assistant</title>
+  <meta name="description" content="Professional low-latency real-time voice assistant orchestrator dashboard for Jarvis Engine.">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -599,7 +599,7 @@
       <div class="brand-logo" aria-hidden="true">V</div>
       <div>
         <div style="display: flex; align-items: center; gap: 0.65rem;">
-          <h1 class="brand-title">Vidya AI</h1>
+          <h1 class="brand-title">Jarvis AI</h1>
           <span class="brand-tag">Voice Engine v1.0</span>
         </div>
       </div>
@@ -665,7 +665,7 @@
         <div class="panel-header">Assistant Actions</div>
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
           <button class="btn btn-primary" id="btnWakeTrigger">
-            <span>⚡ Trigger Wake ("Hey Vidya")</span>
+            <span>⚡ Trigger Wake ("Hey Jarvis")</span>
           </button>
           
           <button class="btn btn-danger" id="btnInterrupt">
@@ -686,7 +686,7 @@
         <canvas id="visualizerCanvas" title="Click reactor canvas to trigger wake word"></canvas>
         
         <div class="state-caption" id="stateSubcaption">
-          Say "Hey Vidya" or click reactor to start listening
+          Say "Hey Jarvis" or click reactor to start listening
         </div>
       </section>
 
@@ -695,8 +695,8 @@
         
         <div class="chat-history" id="chatHistory">
           <div class="msg-bubble msg-assistant">
-            Hello! I am Vidya, your desktop AI voice assistant. How can I help you today?
-            <div class="msg-meta">Vidya • System Ready</div>
+            Hello! I am Jarvis, your desktop AI voice assistant. How can I help you today?
+            <div class="msg-meta">Jarvis • System Ready</div>
           </div>
         </div>
 
@@ -763,7 +763,7 @@
         </div>
 
         <div class="event-log" id="eventLog">
-          <div class="event-item">Connecting to Vidya WebSocket Engine...</div>
+          <div class="event-item">Connecting to Jarvis WebSocket Engine...</div>
         </div>
       </section>
     </div>
@@ -785,8 +785,8 @@
     let currentFilter = 'all';
 
     const stateCaptions = {
-      'IDLE': 'Say "Hey Vidya" or click reactor to start listening',
-      'WAKE_DETECTED': '⚡ Wake word detected ("Hey Vidya")',
+      'IDLE': 'Say "Hey Jarvis" or click reactor to start listening',
+      'WAKE_DETECTED': '⚡ Wake word detected ("Hey Jarvis")',
       'LISTENING': '🎙️ Listening... Speak into active microphone',
       'TRANSCRIBING': '📝 Transcribing voice to text...',
       'THINKING': '🧠 Thinking... Streaming neural response',
@@ -889,7 +889,7 @@
     // Canvas Click Trigger
     canvas.addEventListener('click', async () => {
       await fetch('/api/trigger-wake', { method: 'POST' });
-      logEvent('TriggerWake', 'Canvas Click ("Hey Vidya")');
+      logEvent('TriggerWake', 'Canvas Click ("Hey Jarvis")');
     });
 
     function updateFSMState(state) {
@@ -915,7 +915,7 @@
       const history = document.getElementById('chatHistory');
       const msg = document.createElement('div');
       msg.className = 'msg-bubble msg-assistant';
-      msg.innerHTML = `<span class="bubble-text">...</span><div class="msg-meta">Vidya • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+      msg.innerHTML = `<span class="bubble-text">...</span><div class="msg-meta">Jarvis • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
       history.appendChild(msg);
       history.scrollTop = history.scrollHeight;
       return msg;
@@ -925,7 +925,7 @@
       const history = document.getElementById('chatHistory');
       const msg = document.createElement('div');
       msg.className = `msg-bubble msg-${role}`;
-      msg.innerHTML = `<span>${content}</span><div class="msg-meta">${role === 'user' ? 'You' : 'Vidya'} • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+      msg.innerHTML = `<span>${content}</span><div class="msg-meta">${role === 'user' ? 'You' : 'Jarvis'} • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
       history.appendChild(msg);
       history.scrollTop = history.scrollHeight;
     }
@@ -1106,7 +1106,7 @@
       ws.onopen = () => {
         document.getElementById('wsDot').classList.remove('disconnected');
         document.getElementById('wsStatusText').innerText = 'Connected';
-        logEvent('WebSocket', 'Connected to Vidya Server');
+        logEvent('WebSocket', 'Connected to Jarvis Server');
       };
 
       ws.onclose = () => {
@@ -1154,7 +1154,7 @@
     // User Button Triggers
     document.getElementById('btnWakeTrigger').addEventListener('click', async () => {
       await fetch('/api/trigger-wake', { method: 'POST' });
-      logEvent('TriggerWake', 'Hey Vidya');
+      logEvent('TriggerWake', 'Hey Jarvis');
     });
 
     document.getElementById('btnInterrupt').addEventListener('click', async () => {

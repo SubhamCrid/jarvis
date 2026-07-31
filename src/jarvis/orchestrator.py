@@ -6,20 +6,20 @@ lifecycle control, and task routing across voice capabilities and hardware provi
 import logging
 from typing import Any, Dict, Optional
 
-from vidya.capabilities.registry import CapabilityRegistry
-from vidya.capabilities.voice_assistant import VoiceAssistantCapability
-from vidya.core.base import BaseServiceProtocol, HealthStatus, ServiceStatus
-from vidya.core.bus import MessageBus
-from vidya.core.config.loader import load_config
-from vidya.core.config.schema import AppConfig
-from vidya.core.executor import TaskExecutor
-from vidya.core.fsm import VoiceFSM
-from vidya.core.observability import ObservabilityService
-from vidya.core.planner import SimplePlanner
-from vidya.core.task_manager import TaskManager
-from vidya.providers import ProviderRegistry
+from jarvis.capabilities.registry import CapabilityRegistry
+from jarvis.capabilities.voice_assistant import VoiceAssistantCapability
+from jarvis.core.base import BaseServiceProtocol, HealthStatus, ServiceStatus
+from jarvis.core.bus import MessageBus
+from jarvis.core.config.loader import load_config
+from jarvis.core.config.schema import AppConfig
+from jarvis.core.executor import TaskExecutor
+from jarvis.core.fsm import VoiceFSM
+from jarvis.core.observability import ObservabilityService
+from jarvis.core.planner import SimplePlanner
+from jarvis.core.task_manager import TaskManager
+from jarvis.providers import ProviderRegistry
 
-logger = logging.getLogger("vidya.orchestrator")
+logger = logging.getLogger("jarvis.orchestrator")
 
 
 class AssistantOrchestrator(BaseServiceProtocol):
@@ -107,7 +107,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
         if self.audio_session:
             await self.audio_session.start_listening()
         logger.info(
-            f"Vidya Assistant active; listening for wake word '{self.config.wakeword.model_name}'..."
+            f"Jarvis Assistant active; listening for wake word '{self.config.wakeword.model_name}'..."
         )
 
     async def process_task(self, session_id: str, task_type: str, payload: Dict[str, Any]) -> Any:

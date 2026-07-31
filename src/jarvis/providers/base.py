@@ -7,7 +7,7 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from vidya.core.base import BaseServiceProtocol
+from jarvis.core.base import BaseServiceProtocol
 
 
 @dataclass

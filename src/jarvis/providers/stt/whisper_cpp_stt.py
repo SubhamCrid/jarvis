@@ -9,12 +9,12 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from vidya.core.base import HealthStatus, ServiceStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import STTProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import HealthStatus, ServiceStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import STTProtocol
+from jarvis.providers.registry import register_provider
 
-logger = logging.getLogger("vidya.providers.stt.whisper_cpp")
+logger = logging.getLogger("jarvis.providers.stt.whisper_cpp")
 
 
 @register_provider("stt", "whisper_cpp")

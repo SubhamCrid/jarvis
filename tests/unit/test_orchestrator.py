@@ -3,9 +3,9 @@ Unit tests for AssistantOrchestrator lifecycle and health checks.
 """
 
 import pytest
-from vidya.core.config.loader import load_config
-from vidya.orchestrator import AssistantOrchestrator
-from vidya.core.base import ServiceStatus
+from jarvis.core.config.loader import load_config
+from jarvis.orchestrator import AssistantOrchestrator
+from jarvis.core.base import ServiceStatus
 
 
 @pytest.mark.asyncio

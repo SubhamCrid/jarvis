@@ -9,12 +9,12 @@ import numpy as np
 from pathlib import Path
 from typing import Optional
 
-from vidya.core.base import HealthStatus, ServiceStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import STTProtocol
-from vidya.providers.registry import register_provider
+from jarvis.core.base import HealthStatus, ServiceStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import STTProtocol
+from jarvis.providers.registry import register_provider
 
-logger = logging.getLogger("vidya.providers.stt.faster_whisper")
+logger = logging.getLogger("jarvis.providers.stt.faster_whisper")
 
 
 @register_provider("stt", "faster_whisper")

@@ -6,12 +6,12 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import AsyncGenerator, Optional
-from vidya.core.base import ServiceStatus, HealthStatus
-from vidya.core.config.schema import AppConfig
-from vidya.providers.base import TTSProtocol, AudioChunk
-from vidya.providers.registry import register_provider
+from jarvis.core.base import ServiceStatus, HealthStatus
+from jarvis.core.config.schema import AppConfig
+from jarvis.providers.base import TTSProtocol, AudioChunk
+from jarvis.providers.registry import register_provider
 
-logger = logging.getLogger("vidya.providers.tts.piper")
+logger = logging.getLogger("jarvis.providers.tts.piper")
 
 
 @register_provider("tts", "piper")

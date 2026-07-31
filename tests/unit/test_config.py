@@ -4,8 +4,8 @@ Unit tests for Configuration loader, schema validation, versioning, and environm
 
 import os
 import pytest
-from vidya.core.config.loader import load_config, deep_merge, migrate_config
-from vidya.core.config.schema import AppConfig
+from jarvis.core.config.loader import load_config, deep_merge, migrate_config
+from jarvis.core.config.schema import AppConfig
 
 
 def test_deep_merge():
@@ -24,15 +24,15 @@ def test_migrate_config():
 def test_load_config_defaults(config):
     assert isinstance(config, AppConfig)
     assert config.version == "1.0"
-    assert config.stt.provider == "whisper_cpp"
+    assert config.stt.provider == "faster_whisper"
     assert config.tts.provider == "edge_tts"
     assert config.wakeword.provider == "openwakeword"
 
 
 def test_env_override():
-    os.environ["VIDYA_LLM__MODEL"] = "qwen2.5:3b"
+    os.environ["JARVIS_LLM__MODEL"] = "qwen2.5:3b"
     try:
         cfg = load_config()
         assert cfg.llm.model == "qwen2.5:3b"
     finally:
-        del os.environ["VIDYA_LLM__MODEL"]
+        del os.environ["JARVIS_LLM__MODEL"]
