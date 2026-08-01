@@ -1,6 +1,7 @@
 """
 Assistant orchestrator container responsible for dynamic dependency injection,
-lifecycle control, task routing across voice capabilities, tool platform, search platform, and hardware providers.
+lifecycle control, task routing across voice capabilities, tool platform, search platform,
+memory platform, policy engine, context manager, agent runtime, and hardware providers.
 """
 
 import logging
@@ -12,11 +13,16 @@ from jarvis.core.base import BaseServiceProtocol, HealthStatus, ServiceStatus
 from jarvis.core.bus import MessageBus
 from jarvis.core.config.loader import load_config
 from jarvis.core.config.schema import AppConfig
+from jarvis.core.container import ServiceContainer
 from jarvis.core.executor import TaskExecutor
 from jarvis.core.fsm import VoiceFSM
 from jarvis.core.observability import ObservabilityService
 from jarvis.core.planner import SimplePlanner
 from jarvis.core.task_manager import TaskManager
+from jarvis.policy.engine import PolicyEngine
+from jarvis.context.manager import ContextManager
+from jarvis.memory.coordinator import MemoryCoordinator
+from jarvis.runtime.executor import AgentRuntime
 from jarvis.providers import ProviderRegistry
 from jarvis.search.adapter import SearchToolAdapter
 from jarvis.search.capability import SearchCapability
@@ -32,29 +38,40 @@ logger = logging.getLogger("jarvis.orchestrator")
 class AssistantOrchestrator(BaseServiceProtocol):
     """
     Central dependency orchestrator managing dynamic system provider instantiation via ProviderRegistry,
-    capability registration, tool execution platform, search platform, lifecycle startup/shutdown, and task delegation.
+    capability registration, tool execution platform, search platform, memory platform, policy platform,
+    context platform, agent runtime platform, lifecycle startup/shutdown, and task delegation.
     """
 
-    def __init__(self, config: Optional[AppConfig] = None) -> None:
+    def __init__(
+        self,
+        config: Optional[AppConfig] = None,
+        container: Optional[ServiceContainer] = None,
+    ) -> None:
         self.config = config or load_config()
+        self.container = container or ServiceContainer()
         self._status = ServiceStatus.UNINITIALIZED
 
-        self.bus = MessageBus()
+        # Resolve core shared platforms from ServiceContainer
+        self.bus = self.container.resolve(MessageBus)
+        self.policy_engine = self.container.resolve(PolicyEngine)
+        self.context_manager = self.container.resolve(ContextManager)
+        self.capability_registry = self.container.resolve(CapabilityRegistry)
+        self.memory_coordinator = self.container.resolve(MemoryCoordinator)
+        self.agent_runtime = self.container.resolve(AgentRuntime)
+
         self.fsm = VoiceFSM()
         self.task_manager = TaskManager()
         self.planner = SimplePlanner()
         self.executor = TaskExecutor()
         self.observability = ObservabilityService()
-        self.capability_registry = CapabilityRegistry()
 
-        # Tool Execution Platform components
-        self.tools_config = ToolsConfig.from_env()
-        self.tool_registry = ToolRegistry()
-        self.tool_runner = ToolRunner(config=self.tools_config)
+        # Tool & Search platform resolution
+        self.tools_config = self.container.tools_config
+        self.tool_registry = self.container.tool_registry
+        self.tool_runner = self.container.tool_runner
         self.tools_capability: Optional[ToolsCapability] = None
 
-        # Search Platform components
-        self.search_engine = SearchPipelineEngine()
+        self.search_engine = self.container.search_engine
         self.search_capability: Optional[SearchCapability] = None
 
         self.audio_session: Any = None
@@ -67,7 +84,8 @@ class AssistantOrchestrator(BaseServiceProtocol):
 
     async def initialize(self) -> bool:
         """Dynamically instantiate providers via ProviderRegistry and wire capability dependencies."""
-        logger.info("Initializing AssistantOrchestrator dependencies via ProviderRegistry...")
+        logger.info("Initializing AssistantOrchestrator dependencies via ServiceContainer...")
+        await self.container.initialize()
 
         is_test = self.config.system.environment == "test"
 
@@ -82,7 +100,6 @@ class AssistantOrchestrator(BaseServiceProtocol):
         self.audio_session = ProviderRegistry.create("audio", audio_name, self.config)
         self.wakeword = ProviderRegistry.create("wakeword", wakeword_name, self.config)
 
-        # STT fallback logic: try primary -> faster_whisper -> mock
         try:
             self.stt = ProviderRegistry.create("stt", stt_name, self.config)
         except Exception as stt_err:
@@ -130,7 +147,9 @@ class AssistantOrchestrator(BaseServiceProtocol):
         self.capability_registry.register(self.search_capability)
 
         self._status = ServiceStatus.RUNNING
-        logger.info("AssistantOrchestrator successfully initialized with Voice, Tools, and Search capabilities.")
+        logger.info(
+            "AssistantOrchestrator successfully initialized with Policy, Context, Memory, Runtime, Voice, Tools, and Search platforms."
+        )
         return True
 
     async def start(self) -> None:
@@ -198,6 +217,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
                 "registered_providers": ProviderRegistry.list_providers(),
                 "tool_platform_health": tool_health_info,
                 "search_platform_health": search_health_info,
+                "policy_rules_count": len(self.policy_engine._rules),
             },
         )
 
@@ -211,10 +231,12 @@ class AssistantOrchestrator(BaseServiceProtocol):
             await self.tools_capability.shutdown()
         if self.search_capability:
             await self.search_capability.shutdown()
+        await self.agent_runtime.shutdown()
         self._status = ServiceStatus.STOPPED
 
     async def cancel(self) -> None:
         await self.executor.cancel()
+        await self.agent_runtime.cancel()
         if self.voice_capability:
             await self.voice_capability.cancel()
         if self.tools_capability:

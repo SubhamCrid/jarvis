@@ -7,8 +7,16 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from pydantic import BaseModel, Field
+
+from jarvis.resource import (
+    Resource,
+    ResourceType,
+    ResourcePermission,
+    ResourceURI,
+    generate_file_actions,
+)
 
 
 class SearchTargetType(str, Enum):
@@ -32,6 +40,13 @@ class SearchProviderManifest:
     supports_apps: bool = False
     supports_recent: bool = True
     confidence_score: float = 1.0
+
+    # Capability Discovery attributes
+    supported_resource_types: Set[str] = field(default_factory=lambda: {"file", "folder"})
+    supported_operators: List[str] = field(default_factory=lambda: ["ext:", "path:", "size:"])
+    supported_filters: Dict[str, Any] = field(default_factory=dict)
+    supports_streaming: bool = False
+    supports_indexing: bool = False
 
 
 class SearchQuery(BaseModel):
@@ -64,6 +79,30 @@ class SearchMatch(BaseModel):
     provider_name: str = "unknown"
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
+    def to_resource(self) -> Resource:
+        res_type = ResourceType.FILE if self.target_type == SearchTargetType.FILE else ResourceType.FOLDER
+        uri = ResourceURI.create_file_uri(self.path)
+        actions = generate_file_actions(
+            file_path=self.path,
+            permissions=[ResourcePermission.READ, ResourcePermission.DELETE],
+        )
+        return Resource(
+            id=f"res-search-{uuid.uuid4().hex[:8]}",
+            type=res_type,
+            title=self.filename,
+            uri=uri,
+            metadata={
+                "path": self.path,
+                "score": self.score,
+                "size_bytes": self.size_bytes,
+                "highlights": self.highlights,
+                **self.metadata,
+            },
+            provider=self.provider_name,
+            actions=actions,
+            permissions=[ResourcePermission.READ, ResourcePermission.DELETE],
+        )
+
 
 class SearchExecutionPlan(BaseModel):
     """Execution plan constructed by SearchQueryPlanner."""
@@ -81,6 +120,7 @@ class SearchResponse(BaseModel):
 
     query: str
     matches: List[SearchMatch] = Field(default_factory=list)
+    resources: List[Resource] = Field(default_factory=list)
     total_found: int = 0
     providers_used: List[str] = Field(default_factory=list)
     execution_time_ms: float = 0.0

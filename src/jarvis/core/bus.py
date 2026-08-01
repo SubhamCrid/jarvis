@@ -1,5 +1,5 @@
 """
-Typed message bus and event schema definitions for the Jarvis framework.
+Typed message bus and immutable event schema definitions for the Jarvis framework.
 """
 
 import asyncio
@@ -15,48 +15,55 @@ def current_iso_timestamp() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
-@dataclass
+@dataclass(frozen=True)
 class WakeDetected:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
     score: float = 1.0
     model_name: str = "openwakeword"
 
 
-@dataclass
+@dataclass(frozen=True)
 class SpeechStarted:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
 
 
-@dataclass
+@dataclass(frozen=True)
 class SpeechEnded:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
     duration_ms: float = 0.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class TranscriptReady:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
     text: str = ""
     confidence: float = 1.0
     is_final: bool = True
 
 
-@dataclass
+@dataclass(frozen=True)
 class TokenGenerated:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
     token: str = ""
     accumulated_text: str = ""
 
 
-@dataclass
+@dataclass(frozen=True)
 class SentenceReady:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
     sentence: str = ""
     sentence_index: int = 0
 
 
-@dataclass
+@dataclass(frozen=True)
 class AudioChunkReady:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
     audio_bytes: bytes = b""
     sample_rate: int = 22050
@@ -64,32 +71,97 @@ class AudioChunkReady:
     source: str = "tts"
 
 
-@dataclass
+@dataclass(frozen=True)
 class PlaybackFinished:
+    event_version: str = "1.0"
     timestamp: str = field(default_factory=current_iso_timestamp)
     duration_ms: float = 0.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class TaskCompleted:
+    event_version: str = "1.0"
     task_id: str = ""
     result: Any = None
     timestamp: str = field(default_factory=current_iso_timestamp)
 
 
-@dataclass
+@dataclass(frozen=True)
 class TaskCancelled:
+    event_version: str = "1.0"
     task_id: str = ""
     reason: str = "User interruption"
     timestamp: str = field(default_factory=current_iso_timestamp)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ErrorOccurred:
+    event_version: str = "1.0"
     component: str = ""
     error_type: str = "GeneralError"
     message: str = ""
     exception: Optional[Exception] = None
+    timestamp: str = field(default_factory=current_iso_timestamp)
+
+
+# Additional cross-platform immutable domain events
+@dataclass(frozen=True)
+class SearchFinished:
+    event_version: str = "1.0"
+    query: str = ""
+    total_found: int = 0
+    execution_time_ms: float = 0.0
+    timestamp: str = field(default_factory=current_iso_timestamp)
+
+
+@dataclass(frozen=True)
+class ToolCompleted:
+    event_version: str = "1.0"
+    tool_name: str = ""
+    execution_id: str = ""
+    success: bool = True
+    result: Any = None
+    timestamp: str = field(default_factory=current_iso_timestamp)
+
+
+@dataclass(frozen=True)
+class BrowserOpened:
+    event_version: str = "1.0"
+    url: str = ""
+    session_id: str = ""
+    timestamp: str = field(default_factory=current_iso_timestamp)
+
+
+@dataclass(frozen=True)
+class MemoryStored:
+    event_version: str = "1.0"
+    memory_id: str = ""
+    memory_type: str = ""
+    session_id: str = ""
+    timestamp: str = field(default_factory=current_iso_timestamp)
+
+
+@dataclass(frozen=True)
+class VoiceInterrupted:
+    event_version: str = "1.0"
+    reason: str = "Barge-in"
+    timestamp: str = field(default_factory=current_iso_timestamp)
+
+
+@dataclass(frozen=True)
+class FileChanged:
+    event_version: str = "1.0"
+    path: str = ""
+    change_type: str = "modified"  # created, modified, deleted
+    timestamp: str = field(default_factory=current_iso_timestamp)
+
+
+@dataclass(frozen=True)
+class ResourceActionExecuted:
+    event_version: str = "1.0"
+    resource_id: str = ""
+    action_name: str = ""
+    capability_name: str = ""
     timestamp: str = field(default_factory=current_iso_timestamp)
 
 
@@ -155,5 +227,3 @@ class MessageBus:
                 f"Async exception in event handler for {type(event).__name__}: {e}",
                 exc_info=True,
             )
-
-
