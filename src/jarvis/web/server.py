@@ -54,6 +54,12 @@ class WebDashboardServer:
         self.app.router.add_get("/api/health", self._handle_health)
         self.app.router.add_get("/api/metrics", self._handle_metrics)
 
+        self.app.router.add_get("/api/tools", self._handle_list_tools)
+        self.app.router.add_post("/api/tools/execute", self._handle_execute_tool)
+        self.app.router.add_get("/api/capabilities", self._handle_list_capabilities)
+        self.app.router.add_get("/api/agent/state", self._handle_get_agent_state)
+        self.app.router.add_post("/api/approval/respond", self._handle_respond_approval)
+
         self.orchestrator.bus.subscribe_all(self._on_bus_event)
         self.orchestrator.fsm.add_state_callback(self._on_fsm_state_change)
 
@@ -227,6 +233,63 @@ class WebDashboardServer:
     async def _handle_metrics(self, request: web.Request) -> web.Response:
         metrics = self.orchestrator.observability.get_metrics_summary()
         return web.json_response(metrics)
+
+    async def _handle_list_tools(self, request: web.Request) -> web.Response:
+        tools_list = []
+        if hasattr(self.orchestrator, "tool_registry") and self.orchestrator.tool_registry:
+            for spec, _ in self.orchestrator.tool_registry.list_tools():
+                tools_list.append({
+                    "name": spec.manifest.name,
+                    "version": spec.manifest.version,
+                    "description": spec.manifest.description,
+                    "permission_level": spec.manifest.permission_level.value,
+                    "read_only": spec.manifest.read_only,
+                    "parameters_schema": spec.parameters_schema,
+                })
+        return web.json_response({"tools": tools_list, "total": len(tools_list)})
+
+    async def _handle_execute_tool(self, request: web.Request) -> web.Response:
+        data = await request.json()
+        tool_name = data.get("tool_name")
+        params = data.get("params", {})
+        if not tool_name:
+            return web.json_response({"status": "error", "message": "Missing tool_name"}, status=400)
+
+        if not hasattr(self.orchestrator, "tool_runner") or not self.orchestrator.tool_runner:
+            return web.json_response({"status": "error", "message": "Tool execution platform unavailable"}, status=503)
+
+        from jarvis.tools.schemas import ToolCall
+        import uuid
+        call = ToolCall(call_id=f"manual_{uuid.uuid4().hex[:8]}", tool_name=tool_name, params=params)
+        pair = self.orchestrator.tool_registry.get_tool(tool_name)
+        if not pair:
+            return web.json_response({"status": "error", "message": f"Tool '{tool_name}' not found"}, status=444)
+        spec, adapter = pair
+        res = await self.orchestrator.tool_runner.execute_call(call, spec, adapter)
+        res_data = getattr(res, "data", getattr(res, "result", None))
+        return web.json_response({
+            "call_id": res.call_id,
+            "tool_name": res.tool_name,
+            "success": res.success,
+            "result": res_data,
+            "error": res.error.message if res.error else None,
+            "execution_time_ms": res.execution_time_ms,
+        })
+
+    async def _handle_list_capabilities(self, request: web.Request) -> web.Response:
+        caps = self.orchestrator.capability_registry.list_capabilities()
+        return web.json_response({"capabilities": caps, "total": len(caps)})
+
+    async def _handle_get_agent_state(self, request: web.Request) -> web.Response:
+        state = self.orchestrator.fsm.state.value if self.orchestrator.fsm else "IDLE"
+        return web.json_response({"fsm_state": state})
+
+    async def _handle_respond_approval(self, request: web.Request) -> web.Response:
+        data = await request.json() if request and request.has_body else {}
+        req_id = data.get("request_id", "default")
+        approved = data.get("approved", True)
+        logger.info(f"Human approval response for {req_id}: approved={approved}")
+        return web.json_response({"status": "acknowledged", "request_id": req_id, "approved": approved})
 
     async def start(self) -> None:
         """Start the HTTP server site."""

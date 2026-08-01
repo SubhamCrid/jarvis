@@ -674,6 +674,65 @@
     .event-item.state-event { border-left-color: var(--accent-violet); }
     .event-item.error-event { border-left-color: var(--accent-rose); color: #f87171; }
 
+    /* Inline Tool Execution Cards in Conversation Stream */
+    .msg-tool-card {
+      background: rgba(13, 17, 23, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: var(--radius-md);
+      padding: 0.65rem 0.85rem;
+      margin: 0.4rem 0;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+    }
+    .msg-tool-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+    .tool-badge-title {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--accent-cyan);
+    }
+    .tool-status-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      text-transform: uppercase;
+    }
+    .tool-status-tag.executing { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+    .tool-status-tag.success { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+    .tool-status-tag.error { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+    .tool-json-box {
+      font-family: var(--font-mono);
+      font-size: 0.73rem;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem;
+      color: var(--text-secondary);
+      max-height: 120px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Human Approval Alert Banner */
+    .approval-alert-banner {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .approval-alert-banner.active { display: flex; }
+
     /* Responsive Breakpoints */
     @media (max-width: 1100px) {
       .dashboard-container {
@@ -774,6 +833,18 @@
 
     <!-- Center Column: Hero Visualizer & Conversation -->
     <div class="col-center">
+      <!-- Human Authorization Alert Banner -->
+      <div class="approval-alert-banner" id="approvalAlertBanner">
+        <div style="font-size: 0.85rem;">
+          ⚠️ <strong style="color: var(--accent-amber);">Authorization Requested:</strong>
+          <span id="approvalAlertText">Tool execution requires confirmation.</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-primary" onclick="respondApproval(true)" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">Approve</button>
+          <button class="btn btn-danger" onclick="respondApproval(false)" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;">Deny</button>
+        </div>
+      </div>
+
       <section class="panel-card hero-card" aria-label="Engine Reactor Visualizer">
         <div class="state-badge state-IDLE" id="fsmStateBadge">
           <span>●</span>
@@ -1089,12 +1160,14 @@
         stopBtn.classList.remove('active-listening');
       }
 
-      if (state === 'THINKING' || state === 'SPEAKING') {
-        if (!activeAssistantBubble) {
-          activeAssistantBubble = createAssistantBubble();
+      if (state === 'IDLE' || state === 'LISTENING') {
+        if (activeAssistantBubble) {
+          const textSpan = activeAssistantBubble.querySelector('.bubble-text');
+          if (textSpan && (textSpan.innerText === '...' || !textSpan.innerText.trim())) {
+            activeAssistantBubble.remove();
+          }
+          activeAssistantBubble = null;
         }
-      } else if (state === 'IDLE' || state === 'LISTENING') {
-        activeAssistantBubble = null;
       }
     }
 
@@ -1102,32 +1175,30 @@
       const history = document.getElementById('chatHistory');
       const msg = document.createElement('div');
       msg.className = 'msg-bubble msg-assistant';
-      msg.innerHTML = `<span class="bubble-text">...</span><div class="msg-meta">Jarvis • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+      msg.innerHTML = `<span class="bubble-text"></span><div class="msg-meta">Jarvis • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
       history.appendChild(msg);
       history.scrollTop = history.scrollHeight;
       return msg;
     }
 
     function addChatMessage(role, content) {
+      activeAssistantBubble = null;
       const history = document.getElementById('chatHistory');
       const msg = document.createElement('div');
       msg.className = `msg-bubble msg-${role}`;
-      msg.innerHTML = `<span>${content}</span><div class="msg-meta">${role === 'user' ? 'You' : 'Jarvis'} • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
+      msg.innerHTML = `<span>${escapeHtml(content)}</span><div class="msg-meta">${role === 'user' ? 'You' : 'Jarvis'} • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
       history.appendChild(msg);
       history.scrollTop = history.scrollHeight;
     }
 
     function appendTokenToAssistantBubble(token) {
+      if (!token) return;
       if (!activeAssistantBubble) {
         activeAssistantBubble = createAssistantBubble();
       }
       const textSpan = activeAssistantBubble.querySelector('.bubble-text');
       if (textSpan) {
-        if (textSpan.innerText === '...') {
-          textSpan.innerText = token;
-        } else {
-          textSpan.innerText += token;
-        }
+        textSpan.innerText += token;
       }
       const history = document.getElementById('chatHistory');
       history.scrollTop = history.scrollHeight;
@@ -1317,11 +1388,34 @@
           updateFSMState(data.state);
           logEvent('FSM_State', data.state, 'state');
         } else if (data.type === 'transcript') {
-          addChatMessage('user', data.text);
           activeAssistantBubble = null;
+          addChatMessage('user', data.text);
           logEvent('TranscriptReady', data.text, 'transcript');
         } else if (data.type === 'llm_chunk') {
           appendTokenToAssistantBubble(data.token);
+        } else if (data.type === 'sentence') {
+          if (data.sentence) {
+            if (!activeAssistantBubble) {
+              activeAssistantBubble = createAssistantBubble();
+            }
+            const textSpan = activeAssistantBubble.querySelector('.bubble-text');
+            if (textSpan && !textSpan.innerText.includes(data.sentence)) {
+              textSpan.innerText = (textSpan.innerText ? textSpan.innerText + ' ' : '') + data.sentence;
+            }
+          }
+        } else if (data.type === 'tool_executing') {
+          activeAssistantBubble = null;
+          renderToolCallNode(data.call_id, data.tool_name, 'executing', data.params, null);
+          logEvent('ToolExecuting', `${data.tool_name} (${data.call_id})`, 'state');
+        } else if (data.type === 'tool_completed') {
+          activeAssistantBubble = null;
+          renderToolCallNode(data.call_id, data.tool_name, data.success ? 'success' : 'error', null, data.result || data.error, data.execution_time_ms);
+          logEvent('ToolCompleted', `${data.tool_name} (${data.call_id})`, data.success ? 'transcript' : 'error');
+        } else if (data.type === 'bus_event') {
+          if (data.event_type === 'ApprovalRequested') {
+            showApprovalAlert(data.data);
+          }
+          logEvent(data.event_type, JSON.stringify(data.data || {}));
         } else if (data.type === 'task_cancelled') {
           handleTaskCancelled(data.reason);
         } else if (data.type === 'metrics') {
@@ -1342,6 +1436,62 @@
           if (total) updateMetricDot('dotTotal', total, 1000);
         }
       };
+    }
+
+    function renderToolCallNode(callId, toolName, status, params, output, durationMs) {
+      const history = document.getElementById('chatHistory');
+      let node = document.getElementById(`tool_node_${callId}`);
+
+      if (!node) {
+        node = document.createElement('div');
+        node.id = `tool_node_${callId}`;
+        node.className = 'msg-tool-card';
+        history.appendChild(node);
+      }
+
+      let content = `
+        <div class="msg-tool-header">
+          <span class="tool-badge-title">🔧 ${escapeHtml(toolName)} <small style="opacity:0.6;">(${callId})</small></span>
+          <span class="tool-status-tag ${status}">${status.toUpperCase()} ${durationMs ? `(${durationMs}ms)` : ''}</span>
+        </div>
+      `;
+
+      if (params && Object.keys(params).length > 0) {
+        content += `<div class="tool-json-box"><strong>Input:</strong>\n${escapeHtml(JSON.stringify(params, null, 2))}</div>`;
+      }
+      if (output !== null && output !== undefined) {
+        const strVal = typeof output === 'object' ? JSON.stringify(output, null, 2) : String(output);
+        content += `<div class="tool-json-box" style="margin-top:0.3rem;"><strong>Output:</strong>\n${escapeHtml(strVal)}</div>`;
+      }
+
+      node.innerHTML = content;
+      history.scrollTop = history.scrollHeight;
+    }
+
+    let activeApprovalId = null;
+    function showApprovalAlert(data) {
+      activeApprovalId = data.request_id || 'REQ-01';
+      document.getElementById('approvalAlertText').innerText = data.reason || 'Operation requires confirmation.';
+      document.getElementById('approvalAlertBanner').classList.add('active');
+    }
+
+    async function respondApproval(approved) {
+      if (!activeApprovalId) return;
+      try {
+        await fetch('/api/approval/respond', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ request_id: activeApprovalId, approved: approved })
+        });
+        document.getElementById('approvalAlertBanner').classList.remove('active');
+        activeApprovalId = null;
+      } catch (err) {
+        console.error('Error responding to approval:', err);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     connectWebSocket();
@@ -1406,6 +1556,8 @@
       if (input.value && input.value.trim()) {
         const text = input.value.trim();
         input.value = '';
+        activeAssistantBubble = null;
+        addChatMessage('user', text);
         await fetch('/api/simulate-voice', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},

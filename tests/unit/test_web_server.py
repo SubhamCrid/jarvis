@@ -1,8 +1,10 @@
 """
-Unit tests for WebDashboardServer static dashboard and WebSocket endpoints.
+Unit tests for WebDashboardServer static dashboard, tool execution, and WebSocket endpoints.
 """
 
 import pytest
+from aiohttp.test_utils import make_mocked_request
+
 from jarvis.core.config.loader import load_config
 from jarvis.orchestrator import AssistantOrchestrator
 from jarvis.web.server import WebDashboardServer
@@ -38,6 +40,27 @@ async def test_web_dashboard_server_routes():
     assert resp.status == 200
     assert orchestrator.fsm.state == "IDLE"
 
+    # Test GET /api/tools handler
+    resp = await server._handle_list_tools(None)
+    assert resp.status == 200
+
+    # Test GET /api/capabilities handler
+    resp = await server._handle_list_capabilities(None)
+    assert resp.status == 200
+
+    # Test GET /api/agent/state handler
+    resp = await server._handle_get_agent_state(None)
+    assert resp.status == 200
+
+    # Test POST /api/approval/respond handler
+    mock_req = make_mocked_request("POST", "/api/approval/respond")
+    mock_req.json = lambda: _async_return({"request_id": "req_123", "approved": True})
+    resp = await server._handle_respond_approval(mock_req)
+    assert resp.status == 200
+
     await server.stop()
     await orchestrator.shutdown()
 
+
+async def _async_return(val):
+    return val

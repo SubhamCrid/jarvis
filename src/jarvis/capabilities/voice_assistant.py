@@ -75,6 +75,8 @@ class VoiceAssistantCapability(BaseCapability):
         tts: TTSProtocol,
         session_store: StorageProtocol,
         observability: ObservabilityService,
+        tool_registry: Optional[Any] = None,
+        tool_runner: Optional[Any] = None,
         vad_threshold: float = 0.02,
         silence_duration_ms: int = 1800,
         followup_timeout_s: float = 6.0,
@@ -89,6 +91,8 @@ class VoiceAssistantCapability(BaseCapability):
         self.tts = tts
         self.session_store = session_store
         self.observability = observability
+        self.tool_registry = tool_registry
+        self.tool_runner = tool_runner
         self.followup_timeout_s = followup_timeout_s
         self.max_history_turns = max_history_turns
 
@@ -240,6 +244,116 @@ class VoiceAssistantCapability(BaseCapability):
             )
             await self.fsm.transition_to(FSMState.ERROR)
 
+    async def _try_execute_tool_intent(self, prompt: str, session_id: str) -> Optional[str]:
+        """Check prompt for natural language tool intents (files, search, commands) and execute via ToolRunner."""
+        if not self.tool_registry or not self.tool_runner:
+            return None
+
+        lower = prompt.lower().strip()
+        tool_actions = []
+
+        # 1. Check list directory / files intent
+        list_keywords = [
+            "list file", "list files", "list directory", "read all the files",
+            "read me all the files", "files in", "current folder", "current directory",
+            "show files", "show directory", "dir", "ls"
+        ]
+        if any(kw in lower for kw in list_keywords):
+            tool_actions.append(("list_directory", {"path": "."}))
+
+        # 2. Check write file intent
+        write_keywords = [
+            "write in a file", "write to a file", "write in file", "write to file",
+            "write a file", "create a file", "create file", "save file", "save to file",
+            "make a file", "write text", "write content", "save in a file", "store in a file",
+            "create new file"
+        ]
+        if not tool_actions and any(kw in lower for kw in write_keywords):
+            # Extract target filename if mentioned (e.g., test.txt or notes.txt)
+            filepath = "notes.txt"
+            file_match = re.search(r'[\s/\\\("]((?:[a-zA-Z0-9_\-]+\.)+[a-zA-Z0-9]+)[\s/\\\)"]?', prompt, re.IGNORECASE)
+            if file_match:
+                filepath = file_match.group(1)
+            else:
+                name_match = re.search(r'(?:file|named|called)\s+([a-zA-Z0-9_\-\.]+)', prompt, re.IGNORECASE)
+                if name_match and name_match.group(1).lower() not in ["for", "me", "a", "file", "and", "in", "to", "with"]:
+                    filepath = name_match.group(1)
+
+            # Extract content if mentioned
+            content = f"File created by Jarvis AI Voice Assistant based on prompt: '{prompt}'"
+            content_match = re.search(r'(?:with content|containing|saying|with text|content:)\s*["\']?([^"\']+)["\']?', prompt, re.IGNORECASE)
+            if content_match:
+                content = content_match.group(1).strip()
+
+            tool_actions.append(("write_file", {"path": filepath, "content": content}))
+
+        # 3. Check read specific file intent
+        read_keywords = [
+            "read file", "read a file", "read the file", "read in a file",
+            "contents of", "open file", "cat file", "show file", "view file"
+        ]
+        if not tool_actions and any(kw in lower for kw in read_keywords):
+            filepath = "notes.txt"
+            file_match = re.search(r'[\s/\\\("]((?:[a-zA-Z0-9_\-]+\.)+[a-zA-Z0-9]+)[\s/\\\)"]?', prompt, re.IGNORECASE)
+            if file_match:
+                filepath = file_match.group(1)
+            else:
+                name_match = re.search(r'(?:read|contents of|file)\s+(?:file\s+)?([a-zA-Z0-9_\-\.]+)', prompt, re.IGNORECASE)
+                if name_match and name_match.group(1).lower() not in ["for", "me", "a", "file", "and", "in", "to", "the"]:
+                    filepath = name_match.group(1)
+            tool_actions.append(("read_file", {"path": filepath}))
+
+        # 4. Check search / information intent
+        if not tool_actions and any(kw in lower for kw in ["search", "google", "find", "who is", "what is", "tell me", "latest", "lookup", "info", "gemma", "model"]):
+            query = prompt
+            for prefix in ["search for", "web search", "google", "find me on", "find me", "find info on", "find", "tell me about", "look up"]:
+                if lower.startswith(prefix):
+                    query = prompt[len(prefix):].strip()
+                    break
+            if query:
+                search_tool_name = "search_system"
+                for name in ["search", "search_system", "search_files"]:
+                    if self.tool_registry.get_tool(name):
+                        search_tool_name = name
+                        break
+                tool_actions.append((search_tool_name, {"query": query}))
+
+        if not tool_actions:
+            return None
+
+        results_summary = []
+        from jarvis.runtime.events import StepStarted, StepCompleted
+        from jarvis.tools.schemas import ToolCall
+        import uuid
+
+        for tool_name, params in tool_actions:
+            pair = self.tool_registry.get_tool(tool_name)
+            if not pair:
+                continue
+            spec, adapter = pair
+            call_id = f"call_{uuid.uuid4().hex[:8]}"
+
+            await self.bus.publish(StepStarted(plan_id="voice-plan", step_id=call_id, capability_name="tools", action_name=tool_name))
+            call = ToolCall(call_id=call_id, tool_name=tool_name, params=params)
+            res = await self.tool_runner.execute_call(call, spec, adapter)
+            res_data = getattr(res, "data", getattr(res, "result", None))
+            await self.bus.publish(StepCompleted(plan_id="voice-plan", step_id=call_id, success=res.success, result=res_data if res.success else str(res.error)))
+
+            if res.success:
+                if isinstance(res_data, list):
+                    items_str = ", ".join([str(x) for x in res_data[:10]])
+                    results_summary.append(f"{tool_name} returned: [{items_str}]")
+                elif isinstance(res_data, dict):
+                    import json
+                    results_summary.append(f"{tool_name} returned: {json.dumps(res_data)}")
+                else:
+                    results_summary.append(f"{tool_name} returned: {res_data}")
+            else:
+                err_msg = res.error.message if res.error else "Execution failed"
+                results_summary.append(f"{tool_name} failed: {err_msg}")
+
+        return "; ".join(results_summary) if results_summary else None
+
     async def process_text_prompt(
         self,
         transcript: str,
@@ -266,6 +380,14 @@ class VoiceAssistantCapability(BaseCapability):
             await self.session_store.save_turn(session_id, "user", cleaned_prompt)
 
             await self.fsm.transition_to(FSMState.THINKING)
+
+            # Check if prompt triggers explicit tool execution
+            tool_summary = await self._try_execute_tool_intent(cleaned_prompt, session_id)
+            if tool_summary:
+                llm_prompt = f"The user asked: '{cleaned_prompt}'. I executed the tool(s) and got result: {tool_summary}. Provide a 1-sentence concise response to the user."
+            else:
+                llm_prompt = cleaned_prompt
+
             if self.max_history_turns > 0:
                 history = await self.session_store.get_history(session_id, limit=self.max_history_turns)
                 formatted_history = (
@@ -281,9 +403,9 @@ class VoiceAssistantCapability(BaseCapability):
             full_response_text = ""
 
             self.chunker.reset()
-            max_sentences_per_turn = 5
+            max_sentences_per_turn = 3
 
-            async for token in self.llm.generate_stream(cleaned_prompt, formatted_history):
+            async for token in self.llm.generate_stream(llm_prompt, formatted_history):
                 if self._is_cancelled:
                     break
 

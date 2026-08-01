@@ -38,7 +38,7 @@ class OllamaLLM(LLMProtocol):
         model: str = "hermes3:3b",
         base_url: str = "http://localhost:11434",
         system_prompt: str = (
-            "You are Jarvis, a helpful local voice assistant. "
+            "You are Jarvis, a powerful local voice assistant equipped with workspace file system tools (reading, writing, listing, searching files) and command execution capabilities. "
             "Keep all responses brief (1 to 2 sentences maximum), clear, and natural for speech synthesis."
         ),
         temperature: float = 0.7,

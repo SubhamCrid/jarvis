@@ -121,6 +121,10 @@ class ToolResult(BaseModel):
     execution_time_ms: float = 0.0
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
+    @property
+    def result(self) -> Optional[Any]:
+        return self.data
+
 
 class AuditEvent(BaseModel):
     """Structured audit trail record for security, debugging, and replay."""

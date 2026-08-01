@@ -125,6 +125,8 @@ class AssistantOrchestrator(BaseServiceProtocol):
             tts=self.tts,
             session_store=self.session_store,
             observability=self.observability,
+            tool_registry=self.tool_registry,
+            tool_runner=self.tool_runner,
             vad_threshold=self.config.vad.energy_threshold,
             silence_duration_ms=self.config.vad.silence_duration_ms,
             max_history_turns=self.config.session.max_history_turns,

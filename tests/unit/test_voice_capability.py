@@ -107,3 +107,27 @@ async def test_voice_capability_llm_fallback_transitions_to_idle():
     assert orchestrator.fsm.state == FSMState.IDLE
 
     await orchestrator.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_voice_capability_tool_intents():
+    config = load_config(user_overrides={"system": {"environment": "test"}})
+    orchestrator = AssistantOrchestrator(config)
+    await orchestrator.initialize()
+
+    # Test "you write in a file" prompt intent execution
+    summary = await orchestrator.voice_capability._try_execute_tool_intent(
+        "you write in a file", session_id="test_tool_intent_sess"
+    )
+    assert summary is not None
+    assert "write_file returned:" in summary
+
+    # Test read file intent
+    summary_read = await orchestrator.voice_capability._try_execute_tool_intent(
+        "read file notes.txt", session_id="test_tool_intent_sess"
+    )
+    assert summary_read is not None
+    assert "read_file returned:" in summary_read
+
+    await orchestrator.shutdown()
+

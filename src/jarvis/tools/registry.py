@@ -44,6 +44,10 @@ class ToolRegistry:
         """List all registered ToolSpec instances."""
         return list(self._specs.values())
 
+    def list_tools(self) -> List[Tuple[ToolSpec, Any]]:
+        """List all registered (ToolSpec, adapter) pairs."""
+        return [(spec, self._adapters[name]) for name, spec in self._specs.items() if name in self._adapters]
+
     def list_names(self) -> List[str]:
         """List names of all registered tools."""
         return list(self._specs.keys())
