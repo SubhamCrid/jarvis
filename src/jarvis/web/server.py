@@ -228,11 +228,17 @@ class WebDashboardServer:
         provider = getattr(self.orchestrator.config.tts, "provider", "kokoro")
         voice = getattr(self.orchestrator.config.tts, "voice", "af_bella")
         speed = getattr(self.orchestrator.config.tts, "speed", 1.15)
+        cfg_weight = getattr(self.orchestrator.config.tts, "cfg_weight", 0.5)
+        exaggeration = getattr(self.orchestrator.config.tts, "exaggeration", 0.5)
+        enable_fallback = getattr(self.orchestrator.config.tts, "enable_fallback", False)
         return web.json_response({
             "silence_duration_ms": silence_ms,
             "tts_provider": provider,
             "tts_voice": voice,
             "tts_speed": speed,
+            "tts_cfg_weight": cfg_weight,
+            "tts_exaggeration": exaggeration,
+            "tts_enable_fallback": enable_fallback,
         })
 
     async def _handle_update_settings(self, request: web.Request) -> web.Response:
@@ -241,12 +247,18 @@ class WebDashboardServer:
         tts_provider = data.get("tts_provider")
         tts_voice = data.get("tts_voice")
         tts_speed = data.get("tts_speed")
+        tts_cfg_weight = data.get("tts_cfg_weight")
+        tts_exaggeration = data.get("tts_exaggeration")
+        tts_enable_fallback = data.get("tts_enable_fallback")
 
         updated = self.orchestrator.update_settings(
             silence_duration_ms=silence_ms,
             tts_provider=tts_provider,
             tts_voice=tts_voice,
             tts_speed=tts_speed,
+            tts_cfg_weight=tts_cfg_weight,
+            tts_exaggeration=tts_exaggeration,
+            tts_enable_fallback=tts_enable_fallback,
         )
 
         return web.json_response({

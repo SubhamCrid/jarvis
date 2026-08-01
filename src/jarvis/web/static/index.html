@@ -804,10 +804,30 @@
             <label for="ttsProviderSelect" class="control-label">TTS Engine Provider</label>
             <select id="ttsProviderSelect" class="input-box">
               <option value="kokoro">Kokoro-82M (Local Ultra Fast)</option>
+              <option value="chatterbox">Chatterbox Multilingual (Local Neural)</option>
               <option value="edge_tts">EdgeTTS (Cloud Natural)</option>
               <option value="piper">Piper Neural (Local)</option>
               <option value="mock">Mock TTS (Testing)</option>
             </select>
+          </div>
+
+          <!-- Chatterbox Specific Dynamic Tuning Sliders -->
+          <div id="chatterboxControlsContainer" style="display: none; flex-direction: column; gap: 0.75rem;">
+            <div class="control-box">
+              <div class="control-label-row">
+                <label for="ttsCfgWeightRange" class="control-label">CFG Weight (Pacing/Guidance)</label>
+                <span class="control-val" id="ttsCfgWeightVal">0.50</span>
+              </div>
+              <input type="range" id="ttsCfgWeightRange" class="range-slider" min="0.0" max="1.0" step="0.05" value="0.5" />
+            </div>
+
+            <div class="control-box">
+              <div class="control-label-row">
+                <label for="ttsExaggerationRange" class="control-label">Exaggeration (Emotion Intensity)</label>
+                <span class="control-val" id="ttsExaggerationVal">0.50</span>
+              </div>
+              <input type="range" id="ttsExaggerationRange" class="range-slider" min="0.0" max="2.0" step="0.05" value="0.5" />
+            </div>
           </div>
 
           <div class="control-box">
@@ -820,6 +840,13 @@
               <option value="bf_emma">Emma (British Female)</option>
               <option value="bm_george">George (British Male)</option>
             </select>
+          </div>
+
+          <div class="control-box">
+            <div class="control-label-row">
+              <label for="ttsFallbackCheckbox" class="control-label">Enable TTS Fallback</label>
+              <input type="checkbox" id="ttsFallbackCheckbox" style="accent-color: var(--accent-cyan); cursor: pointer;" />
+            </div>
           </div>
 
         </div>
@@ -1297,6 +1324,17 @@
         { value: 'bf_emma', text: 'Emma (British Female)' },
         { value: 'bm_george', text: 'George (British Male)' }
       ],
+      chatterbox: [
+        { value: 'en_female', text: 'English Female (Multilingual V3)' },
+        { value: 'en_male', text: 'English Male (Multilingual V3)' },
+        { value: 'hi_female', text: 'Hindi Female (हिंदी - Multilingual)' },
+        { value: 'hi_male', text: 'Hindi Male (हिंदी - Multilingual)' },
+        { value: 'fr_female', text: 'French Female (Français - Multilingual)' },
+        { value: 'es_female', text: 'Spanish Female (Español - Multilingual)' },
+        { value: 'de_female', text: 'German Female (Deutsch - Multilingual)' },
+        { value: 'ja_female', text: 'Japanese Female (日本語 - Multilingual)' },
+        { value: 'zh_female', text: 'Mandarin Female (中文 - Multilingual)' }
+      ],
       edge_tts: [
         { value: 'en-US-AvaMultilingualNeural', text: 'Ava Multilingual (English)' },
         { value: 'en-US-AndrewMultilingualNeural', text: 'Andrew Multilingual (English)' },
@@ -1312,7 +1350,18 @@
       ]
     };
 
+    function toggleChatterboxControls(provider) {
+      const container = document.getElementById('chatterboxControlsContainer');
+      if (!container) return;
+      if (provider === 'chatterbox') {
+        container.style.display = 'flex';
+      } else {
+        container.style.display = 'none';
+      }
+    }
+
     function updateVoiceOptionsForProvider(provider, selectedVoice) {
+      toggleChatterboxControls(provider);
       const select = document.getElementById('ttsVoiceSelect');
       if (!select) return;
       select.innerHTML = '';
@@ -1349,6 +1398,17 @@
         if (data.tts_speed) {
           document.getElementById('ttsSpeedRange').value = data.tts_speed;
           document.getElementById('ttsSpeedVal').innerText = `${parseFloat(data.tts_speed).toFixed(2)}x`;
+        }
+        if (data.tts_cfg_weight !== undefined) {
+          document.getElementById('ttsCfgWeightRange').value = data.tts_cfg_weight;
+          document.getElementById('ttsCfgWeightVal').innerText = `${parseFloat(data.tts_cfg_weight).toFixed(2)}`;
+        }
+        if (data.tts_exaggeration !== undefined) {
+          document.getElementById('ttsExaggerationRange').value = data.tts_exaggeration;
+          document.getElementById('ttsExaggerationVal').innerText = `${parseFloat(data.tts_exaggeration).toFixed(2)}`;
+        }
+        if (data.tts_enable_fallback !== undefined) {
+          document.getElementById('ttsFallbackCheckbox').checked = !!data.tts_enable_fallback;
         }
       } catch (err) {
         console.error('Error loading settings:', err);
@@ -1389,6 +1449,49 @@
         body: JSON.stringify({ tts_speed: speed })
       });
       logEvent('UpdatedSettings', `Speech Speed: ${speed.toFixed(2)}x`);
+    });
+
+    // Chatterbox CFG Weight Slider
+    document.getElementById('ttsCfgWeightRange').addEventListener('input', (e) => {
+      document.getElementById('ttsCfgWeightVal').innerText = `${parseFloat(e.target.value).toFixed(2)}`;
+    });
+
+    document.getElementById('ttsCfgWeightRange').addEventListener('change', async (e) => {
+      const weight = parseFloat(e.target.value);
+      document.getElementById('ttsCfgWeightVal').innerText = `${weight.toFixed(2)}`;
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tts_cfg_weight: weight })
+      });
+      logEvent('UpdatedSettings', `CFG Weight: ${weight.toFixed(2)}`);
+    });
+
+    // Chatterbox Exaggeration Slider
+    document.getElementById('ttsExaggerationRange').addEventListener('input', (e) => {
+      document.getElementById('ttsExaggerationVal').innerText = `${parseFloat(e.target.value).toFixed(2)}`;
+    });
+
+    document.getElementById('ttsExaggerationRange').addEventListener('change', async (e) => {
+      const exag = parseFloat(e.target.value);
+      document.getElementById('ttsExaggerationVal').innerText = `${exag.toFixed(2)}`;
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tts_exaggeration: exag })
+      });
+      logEvent('UpdatedSettings', `Exaggeration: ${exag.toFixed(2)}`);
+    });
+
+    // TTS Fallback Checkbox Handler
+    document.getElementById('ttsFallbackCheckbox').addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tts_enable_fallback: enabled })
+      });
+      logEvent('UpdatedSettings', `TTS Fallback: ${enabled ? 'Enabled' : 'Disabled'}`);
     });
 
     // 2. VAD Pause Tolerance Slider Handlers (Live input + API change)

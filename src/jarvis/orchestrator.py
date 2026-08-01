@@ -180,6 +180,9 @@ class AssistantOrchestrator(BaseServiceProtocol):
         tts_provider: Optional[str] = None,
         tts_voice: Optional[str] = None,
         tts_speed: Optional[float] = None,
+        tts_cfg_weight: Optional[float] = None,
+        tts_exaggeration: Optional[float] = None,
+        tts_enable_fallback: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """Update runtime configuration settings dynamically."""
         updated: Dict[str, Any] = {}
@@ -187,6 +190,41 @@ class AssistantOrchestrator(BaseServiceProtocol):
             self.voice_capability.vad.silence_duration_ms = int(silence_duration_ms)
             self.config.vad.silence_duration_ms = int(silence_duration_ms)
             updated["silence_duration_ms"] = int(silence_duration_ms)
+
+        if tts_enable_fallback is not None:
+            val_bool = bool(tts_enable_fallback)
+            self.config.tts.enable_fallback = val_bool
+            if self.tts:
+                setattr(self.tts, "enable_fallback", val_bool)
+                if not val_bool:
+                    setattr(self.tts, "_fallback_tts", None)
+                elif getattr(self.tts, "_status", None) != ServiceStatus.RUNNING and getattr(self.tts, "_fallback_tts", None) is None:
+                    try:
+                        from jarvis.providers.tts.edge_tts_provider import EdgeTTSProvider
+                        fb = EdgeTTSProvider(speed=getattr(self.tts, "speed", 1.15))
+                        try:
+                            loop = asyncio.get_running_loop()
+                            loop.create_task(fb.initialize())
+                        except RuntimeError:
+                            asyncio.run(fb.initialize())
+                        setattr(self.tts, "_fallback_tts", fb)
+                    except Exception as fb_err:
+                        logger.error(f"Failed to dynamically initialize fallback for active TTS: {fb_err}")
+            updated["tts_enable_fallback"] = val_bool
+
+        if tts_cfg_weight is not None:
+            val_float = float(tts_cfg_weight)
+            self.config.tts.cfg_weight = val_float
+            if self.tts:
+                setattr(self.tts, "cfg_weight", val_float)
+            updated["tts_cfg_weight"] = val_float
+
+        if tts_exaggeration is not None:
+            val_float = float(tts_exaggeration)
+            self.config.tts.exaggeration = val_float
+            if self.tts:
+                setattr(self.tts, "exaggeration", val_float)
+            updated["tts_exaggeration"] = val_float
 
         if tts_provider and tts_provider != self.config.tts.provider:
             self.config.tts.provider = str(tts_provider)

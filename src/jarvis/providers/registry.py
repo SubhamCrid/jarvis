@@ -32,6 +32,7 @@ class ProviderRegistry:
                 "jarvis.providers.stt.faster_whisper_stt",
                 "jarvis.providers.stt.mock_stt",
                 "jarvis.providers.stt.whisper_cpp_stt",
+                "jarvis.providers.tts.chatterbox_tts",
                 "jarvis.providers.tts.edge_tts_provider",
                 "jarvis.providers.tts.kokoro_tts",
                 "jarvis.providers.tts.mock_tts",

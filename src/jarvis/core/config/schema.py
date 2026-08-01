@@ -58,7 +58,11 @@ class TTSConfig(BaseModel):
     speaker_id: int = Field(default=0)
     speed: float = Field(default=1.15)
     auto_switch_voice: bool = Field(default=False)
+    cfg_weight: float = Field(default=0.5)
+    exaggeration: float = Field(default=0.5)
+    enable_fallback: bool = Field(default=False)
     chunk_queue_size: int = Field(default=20)
+
 
 
 class SessionConfig(BaseModel):

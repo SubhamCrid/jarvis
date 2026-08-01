@@ -116,3 +116,34 @@ async def test_kokoro_tts_streaming():
     await tts.shutdown()
 
 
+@pytest.mark.asyncio
+async def test_chatterbox_tts_streaming():
+    from jarvis.providers.tts.chatterbox_tts import ChatterboxTTS
+    tts = ChatterboxTTS(voice="en_female", cfg_weight=0.7, exaggeration=0.6, enable_fallback=False)
+
+    # Test script language detection
+    assert tts._infer_language_id("Hello world") == "en"
+    assert tts._infer_language_id("नमस्ते दुनिया") == "hi"
+    assert tts._infer_language_id("こんにちは") == "ja"
+    assert tts._infer_language_id("你好") == "zh"
+
+    # Initialize handles missing dependencies gracefully
+    init_res = await tts.initialize()
+    assert isinstance(init_res, bool)
+
+    health_res = await tts.health()
+    assert health_res.details["voice"] == "en_female"
+    assert health_res.details["cfg_weight"] == 0.7
+    assert health_res.details["exaggeration"] == 0.6
+    assert health_res.details["enable_fallback"] is False
+
+    chunks = []
+    async for chunk in tts.synthesize_stream("Testing Chatterbox synthesis"):
+        chunks.append(chunk)
+
+    assert len(chunks) > 0
+    assert len(chunks[0].data) > 0
+    await tts.shutdown()
+
+
+
