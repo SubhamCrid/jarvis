@@ -102,7 +102,17 @@ class FasterWhisperSTT(STTProtocol):
                 loop = asyncio.get_running_loop()
                 def _run_transcribe():
                     lang = None if self.language in ("auto", None, "", "Auto") else self.language
-                    segments, _ = self._fw_model.transcribe(audio_np, beam_size=2, language=lang)
+                    segments, _ = self._fw_model.transcribe(
+                        audio_np,
+                        beam_size=2,
+                        language=lang,
+                        condition_on_previous_text=False,
+                        vad_filter=True,
+                        vad_parameters=dict(min_silence_duration_ms=400),
+                        temperature=0.0,
+                        no_speech_threshold=0.6,
+                        repetition_penalty=1.2,
+                    )
                     return " ".join([seg.text for seg in segments]).strip()
 
                 text = await loop.run_in_executor(None, _run_transcribe)
@@ -118,7 +128,17 @@ class FasterWhisperSTT(STTProtocol):
                         self.device = "cpu"
                         self.compute_type = "int8"
                         self._fw_model = WhisperModel(self.model, device="cpu", compute_type="int8")
-                        segments, _ = self._fw_model.transcribe(audio_np, beam_size=2, language=None)
+                        segments, _ = self._fw_model.transcribe(
+                            audio_np,
+                            beam_size=2,
+                            language=None,
+                            condition_on_previous_text=False,
+                            vad_filter=True,
+                            vad_parameters=dict(min_silence_duration_ms=400),
+                            temperature=0.0,
+                            no_speech_threshold=0.6,
+                            repetition_penalty=1.2,
+                        )
                         text = " ".join([seg.text for seg in segments]).strip()
                         if text:
                             logger.info(f"FasterWhisper CPU fallback transcribed: '{text}'")

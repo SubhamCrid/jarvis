@@ -108,7 +108,7 @@ class ChatterboxTTS(TTSProtocol):
             return "cpu"
 
     async def initialize(self) -> bool:
-        """Initialize Chatterbox Multilingual TTS model or fallback mode if enabled."""
+        """Initialize Chatterbox Multilingual TTS model or fallback mode if primary model is unavailable."""
         try:
             target_device = self._determine_device()
             loop = asyncio.get_running_loop()
@@ -117,9 +117,13 @@ class ChatterboxTTS(TTSProtocol):
                 try:
                     from chatterbox.mtl_tts import ChatterboxMultilingualTTS  # type: ignore
                     return ChatterboxMultilingualTTS.from_pretrained(device=target_device)
-                except ImportError:
-                    from chatterbox.tts import ChatterboxTTS as PyChatterboxTTS  # type: ignore
-                    return PyChatterboxTTS.from_pretrained(device=target_device)
+                except Exception as ex1:
+                    try:
+                        from chatterbox.tts import ChatterboxTTS as PyChatterboxTTS  # type: ignore
+                        return PyChatterboxTTS.from_pretrained(device=target_device)
+                    except Exception as ex2:
+                        logger.warning(f"Chatterbox load failed: mtl_tts ({ex1}), tts ({ex2})")
+                        raise ex1
 
             self._model = await loop.run_in_executor(None, _load)
             if hasattr(self._model, "sr") and self._model.sr:
@@ -128,22 +132,20 @@ class ChatterboxTTS(TTSProtocol):
             logger.info(f"ChatterboxTTS initialized on {target_device} (voice: {self.voice}, speed: {self.speed}x, cfg_weight: {self.cfg_weight}, exaggeration: {self.exaggeration})")
             return True
         except Exception as e:
-            logger.warning(f"Chatterbox package/weights not loaded ({e}).")
+            logger.warning(f"Chatterbox package/weights not loaded ({e}). Initializing fallback provider.")
             self._status = ServiceStatus.DEGRADED
-            if self.enable_fallback and self.fallback_provider and self.fallback_provider != "chatterbox":
-                logger.info(f"Initializing '{self.fallback_provider}' fallback mode for ChatterboxTTS.")
-                try:
-                    from jarvis.providers.registry import ProviderRegistry
-                    self._fallback_tts = ProviderRegistry.create("tts", self.fallback_provider, AppConfig())
-                    await self._fallback_tts.initialize()
-                except Exception as fb_err:
-                    logger.error(f"Fallback '{self.fallback_provider}' init failed: {fb_err}")
-            else:
-                logger.info("TTS Fallback is disabled. Running ChatterboxTTS without fallback engine.")
+            fallback_name = self.fallback_provider if self.fallback_provider and self.fallback_provider != "chatterbox" else "edge_tts"
+            try:
+                from jarvis.providers.registry import ProviderRegistry
+                self._fallback_tts = ProviderRegistry.create("tts", fallback_name, AppConfig())
+                await self._fallback_tts.initialize()
+                logger.info(f"Initialized fallback provider '{fallback_name}' for ChatterboxTTS.")
+            except Exception as fb_err:
+                logger.error(f"Fallback '{fallback_name}' init failed: {fb_err}")
             return False
 
     async def synthesize_stream(self, text: str) -> AsyncGenerator[AudioChunk, None]:
-        """Synthesize text into PCM audio chunk stream using Chatterbox or fallback."""
+        """Synthesize text into PCM audio chunk stream using Chatterbox or automatic fallback."""
         self._cancelled = False
         if not text or self._cancelled:
             return
@@ -156,35 +158,48 @@ class ChatterboxTTS(TTSProtocol):
 
                 def _generate():
                     kwargs: Dict[str, Any] = {}
-                    if hasattr(self._model, "generate"):
+                    gen_fn = None
+                    for method in ("generate", "synthesize", "predict", "generate_speech"):
+                        if hasattr(self._model, method):
+                            gen_fn = getattr(self._model, method)
+                            break
+                    if gen_fn is None and callable(self._model):
+                        gen_fn = self._model
+
+                    if gen_fn is not None:
                         import inspect
-                        sig = inspect.signature(self._model.generate)
-                        if "language_id" in sig.parameters:
-                            kwargs["language_id"] = lang_id
-                        if "cfg_weight" in sig.parameters:
-                            kwargs["cfg_weight"] = self.cfg_weight
-                        if "exaggeration" in sig.parameters:
-                            kwargs["exaggeration"] = self.exaggeration
-                        return self._model.generate(text, **kwargs)
+                        try:
+                            sig = inspect.signature(gen_fn)
+                            if "language_id" in sig.parameters:
+                                kwargs["language_id"] = lang_id
+                            if "cfg_weight" in sig.parameters:
+                                kwargs["cfg_weight"] = self.cfg_weight
+                            if "exaggeration" in sig.parameters:
+                                kwargs["exaggeration"] = self.exaggeration
+                        except Exception:
+                            pass
+                        res = gen_fn(text, **kwargs)
+                        if isinstance(res, tuple):
+                            res = res[0]
+                        elif isinstance(res, dict) and "audio" in res:
+                            res = res["audio"]
+                        return res
                     return None
 
                 raw_audio = await loop.run_in_executor(None, _generate)
 
                 if raw_audio is not None and not self._cancelled:
-                    # Convert tensor/ndarray float audio to 16-bit LE PCM
                     if hasattr(raw_audio, "cpu"):
                         raw_audio = raw_audio.cpu().numpy()
                     if hasattr(raw_audio, "squeeze"):
                         raw_audio = raw_audio.squeeze()
 
                     audio_arr = np.asarray(raw_audio, dtype=np.float32)
-                    # Normalize audio amplitude
                     max_val = np.max(np.abs(audio_arr))
                     if max_val > 0:
                         audio_arr = audio_arr / max_val
                     pcm_data = (audio_arr * 32767.0).astype(np.int16).tobytes()
 
-                    # Stream PCM audio in 2048-byte chunks (~46ms per chunk at 24kHz)
                     chunk_size = 2048
                     for i in range(0, len(pcm_data), chunk_size):
                         if self._cancelled:
@@ -195,14 +210,26 @@ class ChatterboxTTS(TTSProtocol):
             except Exception as err:
                 logger.error(f"ChatterboxTTS synthesis failed: {err}")
 
-        # Fallback handling
-        if self._fallback_tts is not None and not self._cancelled:
+        if self._cancelled:
+            return
+
+        # Automatic fallback routing if primary model is unavailable or generation failed
+        if self._fallback_tts is None:
+            try:
+                from jarvis.providers.registry import ProviderRegistry
+                fallback_name = self.fallback_provider if self.fallback_provider and self.fallback_provider != "chatterbox" else "edge_tts"
+                self._fallback_tts = ProviderRegistry.create("tts", fallback_name, AppConfig())
+                await self._fallback_tts.initialize()
+            except Exception as fb_err:
+                logger.error(f"On-demand fallback init failed for ChatterboxTTS: {fb_err}")
+
+        if self._fallback_tts is not None:
             async for chunk in self._fallback_tts.synthesize_stream(text):
                 if self._cancelled:
                     break
                 yield chunk
-        elif self._status != ServiceStatus.RUNNING:
-            logger.warning("ChatterboxTTS is degraded and fallback is disabled; outputting silent standby chunk.")
+        else:
+            logger.warning("ChatterboxTTS degraded and fallback provider unavailable; outputting silent standby chunk.")
             chunk_pcm = b"\x00\x00" * 512
             yield AudioChunk(data=chunk_pcm, sample_rate=self.sample_rate)
 

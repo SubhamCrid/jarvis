@@ -149,7 +149,7 @@ class WebDashboardServer:
         if self.orchestrator.wakeword and hasattr(self.orchestrator.wakeword, "reset"):
             self.orchestrator.wakeword.reset()
         if self.orchestrator.voice_capability:
-            self.orchestrator.voice_capability._audio_buffer.clear()
+            self.orchestrator.voice_capability._seed_audio_buffer_from_preroll()
             self.orchestrator.voice_capability.vad.reset()
             if hasattr(self.orchestrator.voice_capability.wakeword, "reset"):
                 self.orchestrator.voice_capability.wakeword.reset()
@@ -174,7 +174,6 @@ class WebDashboardServer:
         await self.orchestrator.fsm.force_transition_to(FSMState.IDLE)
         return web.json_response({"status": "listening_stopped"})
 
-
     async def _handle_interrupt(self, request: web.Request) -> web.Response:
         logger.info("Web dashboard triggered barge-in interrupt.")
         current_state = self.orchestrator.fsm.state
@@ -184,7 +183,7 @@ class WebDashboardServer:
 
         await self.orchestrator.cancel()
         if self.orchestrator.voice_capability:
-            self.orchestrator.voice_capability._audio_buffer.clear()
+            self.orchestrator.voice_capability._seed_audio_buffer_from_preroll()
             self.orchestrator.voice_capability.vad.reset()
 
         if current_state == FSMState.SPEAKING:

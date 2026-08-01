@@ -56,12 +56,15 @@ class EdgeTTSProvider(TTSProtocol):
         return f"{pct:+d}%"
 
     def _select_voice_for_text(self, text: str) -> str:
-        """Select appropriate voice based on text script if auto_switch_voice is enabled."""
-        if not self.auto_switch_voice or not text:
-            return self.voice
-        if any('\u0900' <= char <= '\u097F' for char in text):
-            return "hi-IN-SwaraNeural"
-        return self.voice
+        """Select appropriate voice based on text script if auto_switch_voice is enabled, validating voice model string."""
+        target_voice = self.voice
+        if not target_voice or "Neural" not in target_voice:
+            target_voice = "en-US-AvaMultilingualNeural"
+
+        if self.auto_switch_voice and text:
+            if any('\u0900' <= char <= '\u097F' for char in text):
+                return "hi-IN-SwaraNeural"
+        return target_voice
 
     async def initialize(self) -> bool:
         try:

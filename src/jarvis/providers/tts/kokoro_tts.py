@@ -104,18 +104,16 @@ class KokoroTTS(TTSProtocol):
             logger.info(f"KokoroTTS initialized successfully (voice: {self.voice}, speed: {self.speed}x, default_lang: {target_lang})")
             return True
         except Exception as e:
-            logger.warning(f"Kokoro package/weights not loaded ({e}).")
+            logger.warning(f"Kokoro package/weights not loaded ({e}). Initializing fallback provider.")
             self._status = ServiceStatus.DEGRADED
-            if self.enable_fallback and self.fallback_provider and self.fallback_provider != "kokoro":
-                logger.info(f"Initializing '{self.fallback_provider}' fallback mode for KokoroTTS.")
-                try:
-                    from jarvis.providers.registry import ProviderRegistry
-                    self._fallback_tts = ProviderRegistry.create("tts", self.fallback_provider, AppConfig())
-                    await self._fallback_tts.initialize()
-                except Exception as fb_err:
-                    logger.error(f"Fallback '{self.fallback_provider}' init failed: {fb_err}")
-            else:
-                logger.info("TTS Fallback is disabled. Running without fallback engine.")
+            fallback_name = self.fallback_provider if self.fallback_provider and self.fallback_provider != "kokoro" else "edge_tts"
+            try:
+                from jarvis.providers.registry import ProviderRegistry
+                self._fallback_tts = ProviderRegistry.create("tts", fallback_name, AppConfig())
+                await self._fallback_tts.initialize()
+                logger.info(f"Initialized fallback provider '{fallback_name}' for KokoroTTS.")
+            except Exception as fb_err:
+                logger.error(f"Fallback '{fallback_name}' init failed: {fb_err}")
             return False
 
     async def _get_or_load_pipeline(self, lang_code: str):
@@ -154,18 +152,25 @@ class KokoroTTS(TTSProtocol):
 
                     def producer():
                         try:
-                            generator = pipeline(text, voice=active_voice, speed=self.speed, split_pattern=r'\n+')
+                            generator = pipeline(text, voice=active_voice, speed=self.speed, split_pattern=r'[\n.?!]+')
                             for _, _, audio in generator:
+                                if self._cancelled:
+                                    break
                                 if audio is not None:
                                     if hasattr(audio, 'numpy'):
                                         audio_np = audio.numpy()
                                     else:
                                         audio_np = np.array(audio, dtype=np.float32)
                                     
-                                    audio_int16 = np.clip(audio_np * 32767.0, -32768.0, 32767.0).astype(np.int16)
+                                    max_val = np.max(np.abs(audio_np))
+                                    if max_val > 0:
+                                        audio_np = audio_np / max_val
+                                    audio_int16 = (audio_np * 32767.0).astype(np.int16)
                                     chunk_bytes = audio_int16.tobytes()
-                                    chunk_size = 4096
+                                    chunk_size = 2048
                                     for i in range(0, len(chunk_bytes), chunk_size):
+                                        if self._cancelled:
+                                            break
                                         block = chunk_bytes[i:i + chunk_size]
                                         loop.call_soon_threadsafe(queue.put_nowait, block)
                         except Exception as p_err:
@@ -186,7 +191,19 @@ class KokoroTTS(TTSProtocol):
                 except Exception as err:
                     logger.error(f"Error during KokoroTTS synthesis streaming: {err}")
 
-        # Fallback to EdgeTTS if kokoro pipeline is not active
+        if self._cancelled:
+            return
+
+        # Automatic fallback routing if primary model is unavailable or generation failed
+        if self._fallback_tts is None:
+            try:
+                from jarvis.providers.registry import ProviderRegistry
+                fallback_name = self.fallback_provider if self.fallback_provider and self.fallback_provider != "kokoro" else "edge_tts"
+                self._fallback_tts = ProviderRegistry.create("tts", fallback_name, AppConfig())
+                await self._fallback_tts.initialize()
+            except Exception as fb_err:
+                logger.error(f"On-demand fallback init failed for KokoroTTS: {fb_err}")
+
         if self._fallback_tts is not None:
             async for chunk in self._fallback_tts.synthesize_stream(text):
                 if self._cancelled:
@@ -194,7 +211,6 @@ class KokoroTTS(TTSProtocol):
                 yield chunk
             return
 
-        # Synthetic PCM audio chunk stream fallback if all else fails
         if not self._cancelled:
             chunk_pcm = (b"\x05\x05" * 512)
             yield AudioChunk(data=chunk_pcm, sample_rate=self.sample_rate)
