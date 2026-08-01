@@ -231,6 +231,7 @@ class WebDashboardServer:
         exaggeration = getattr(self.orchestrator.config.tts, "exaggeration", 0.5)
         enable_fallback = getattr(self.orchestrator.config.tts, "enable_fallback", False)
         fallback_provider = getattr(self.orchestrator.config.tts, "fallback_provider", "edge_tts")
+        policy_mode = getattr(self.orchestrator.tools_config, "policy_mode", "PERMISSIVE")
         return web.json_response({
             "silence_duration_ms": silence_ms,
             "tts_provider": provider,
@@ -240,6 +241,7 @@ class WebDashboardServer:
             "tts_exaggeration": exaggeration,
             "tts_enable_fallback": enable_fallback,
             "tts_fallback_provider": fallback_provider,
+            "policy_mode": policy_mode,
         })
 
     async def _handle_update_settings(self, request: web.Request) -> web.Response:
@@ -252,6 +254,7 @@ class WebDashboardServer:
         tts_exaggeration = data.get("tts_exaggeration")
         tts_enable_fallback = data.get("tts_enable_fallback")
         tts_fallback_provider = data.get("tts_fallback_provider")
+        policy_mode = data.get("policy_mode")
 
         updated = self.orchestrator.update_settings(
             silence_duration_ms=silence_ms,
@@ -262,6 +265,7 @@ class WebDashboardServer:
             tts_exaggeration=tts_exaggeration,
             tts_enable_fallback=tts_enable_fallback,
             tts_fallback_provider=tts_fallback_provider,
+            policy_mode=policy_mode,
         )
 
         return web.json_response({

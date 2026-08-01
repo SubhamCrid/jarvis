@@ -58,9 +58,30 @@ async def test_web_dashboard_server_routes():
     resp = await server._handle_respond_approval(mock_req)
     assert resp.status == 200
 
+    # Test GET /api/settings handler
+    resp = await server._handle_get_settings(None)
+    assert resp.status == 200
+
+    # Test POST /api/settings handler toggling policy_mode to PERMISSIVE
+    mock_set_req = make_mocked_request("POST", "/api/settings")
+    mock_set_req.json = lambda: _async_return({"policy_mode": "PERMISSIVE"})
+    resp_set = await server._handle_update_settings(mock_set_req)
+    assert resp_set.status == 200
+    assert orchestrator.tools_config.policy_mode == "PERMISSIVE"
+    assert orchestrator.tool_runner.policy_engine.sandbox.permissive is True
+
+    # Test POST /api/settings handler toggling policy_mode to STRICT
+    mock_set_req2 = make_mocked_request("POST", "/api/settings")
+    mock_set_req2.json = lambda: _async_return({"policy_mode": "STRICT"})
+    resp_set2 = await server._handle_update_settings(mock_set_req2)
+    assert resp_set2.status == 200
+    assert orchestrator.tools_config.policy_mode == "STRICT"
+    assert orchestrator.tool_runner.policy_engine.sandbox.permissive is False
+
     await server.stop()
     await orchestrator.shutdown()
 
 
 async def _async_return(val):
     return val
+

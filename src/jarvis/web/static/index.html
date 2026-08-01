@@ -801,6 +801,15 @@
           </div>
 
           <div class="control-box">
+            <label for="policyModeSelect" class="control-label">Access Policy Mode</label>
+            <select id="policyModeSelect" class="input-box" style="font-weight: 600; color: var(--accent-cyan);">
+              <option value="PERMISSIVE">⚡ PERMISSIVE (Unrestricted Device Access)</option>
+              <option value="BALANCED">⚖️ BALANCED (Standard Safety)</option>
+              <option value="STRICT">🛡️ STRICT (Strict Confirmation Gates)</option>
+            </select>
+          </div>
+
+          <div class="control-box">
             <label for="ttsProviderSelect" class="control-label">TTS Engine Provider</label>
             <select id="ttsProviderSelect" class="input-box">
               <option value="kokoro">Kokoro-82M (Local Ultra Fast)</option>
@@ -1466,10 +1475,24 @@
         if (data.tts_fallback_provider) {
           document.getElementById('ttsFallbackProviderSelect').value = data.tts_fallback_provider;
         }
+        if (data.policy_mode) {
+          const modeSel = document.getElementById('policyModeSelect');
+          if (modeSel) modeSel.value = data.policy_mode;
+        }
       } catch (err) {
         console.error('Error loading settings:', err);
       }
     }
+
+    document.getElementById('policyModeSelect').addEventListener('change', async (e) => {
+      const mode = e.target.value;
+      logEvent('PolicyModeChange', `Switched Access Policy Mode to ${mode}`);
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ policy_mode: mode })
+      });
+    });
 
     async function loadAudioDevices() {
       try {
