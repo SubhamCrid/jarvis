@@ -5,7 +5,7 @@ Schemas and dataclasses for Ephemeral Context Platform (jarvis.context).
 import time
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ContextScope(str, Enum):
@@ -19,6 +19,8 @@ class ContextScope(str, Enum):
 
 
 class ContextItem(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     key: str
     value: Any
     scope: ContextScope = ContextScope.EPHEMERAL
@@ -33,12 +35,11 @@ class ContextItem(BaseModel):
             return now >= self.expires_at
         return False
 
-    class Config:
-        frozen = True
-
 
 class ContextSnapshot(BaseModel):
     """Consolidated snapshot of active execution context passed to planners/evaluators."""
+
+    model_config = ConfigDict(frozen=True)
 
     session_id: str = "default_session"
     active_task_id: Optional[str] = None
@@ -51,5 +52,3 @@ class ContextSnapshot(BaseModel):
     scoped_variables: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     timestamp: float = Field(default_factory=time.time)
 
-    class Config:
-        frozen = True

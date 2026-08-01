@@ -5,7 +5,7 @@ Typed contracts and schema definitions for the Jarvis Memory Platform.
 import time, uuid
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MemoryType(str, Enum):
@@ -20,6 +20,8 @@ class MemoryType(str, Enum):
 class MemoryItem(BaseModel):
     """Universal memory record representation."""
 
+    model_config = ConfigDict(frozen=True)
+
     id: str = Field(default_factory=lambda: f"mem-{uuid.uuid4().hex[:12]}")
     memory_type: MemoryType = MemoryType.WORKING
     key: str
@@ -31,20 +33,16 @@ class MemoryItem(BaseModel):
     created_at: float = Field(default_factory=time.time)
     updated_at: float = Field(default_factory=time.time)
 
-    class Config:
-        frozen = True
-
 
 class MemoryQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     query_text: str
     memory_types: List[MemoryType] = Field(default_factory=lambda: [MemoryType.WORKING, MemoryType.SEMANTIC])
     session_id: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     min_confidence: float = 0.0
     limit: int = 20
-
-    class Config:
-        frozen = True
 
 
 class MemoryStoreRequest(BaseModel):
@@ -57,9 +55,9 @@ class MemoryStoreRequest(BaseModel):
 
 
 class MemorySearchResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     item: MemoryItem
     relevance_score: float = 1.0
     matched_by: str = "keyword"
 
-    class Config:
-        frozen = True

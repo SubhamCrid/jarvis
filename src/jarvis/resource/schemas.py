@@ -4,7 +4,7 @@ Typed contract schemas for the Jarvis Universal Resource Model.
 
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ResourceType(str, Enum):
@@ -38,6 +38,8 @@ class ResourcePermission(str, Enum):
 class ActionDescriptor(BaseModel):
     """Generic, capability-agnostic descriptor of an action that can be performed."""
 
+    model_config = ConfigDict(frozen=True)
+
     name: str
     label: str
     capability_name: str = "system"
@@ -47,15 +49,14 @@ class ActionDescriptor(BaseModel):
     params: Dict[str, Any] = Field(default_factory=dict)
     description: str = ""
 
-    class Config:
-        frozen = True
-
 
 class Resource(BaseModel):
     """
     Universal resource representation exchanged across Search, Tools,
     Memory, Browser, Voice, and Runtime platforms.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     id: str
     type: ResourceType = ResourceType.UNKNOWN
@@ -68,5 +69,3 @@ class Resource(BaseModel):
         default_factory=lambda: [ResourcePermission.READ]
     )
 
-    class Config:
-        frozen = True

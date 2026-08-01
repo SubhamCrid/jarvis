@@ -5,7 +5,7 @@ Typed contract schemas for Agent Runtime Platform (jarvis.runtime).
 import time, uuid
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExecutionState(str, Enum):
@@ -24,15 +24,16 @@ class ExecutionState(str, Enum):
 
 
 class RetryPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     max_retries: int = 3
     delay_seconds: float = 1.0
     backoff_factor: float = 2.0
 
-    class Config:
-        frozen = True
-
 
 class PlanStep(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
     step_id: str = Field(default_factory=lambda: f"step-{uuid.uuid4().hex[:8]}")
     name: str
     capability_name: str
@@ -45,21 +46,19 @@ class PlanStep(BaseModel):
     result: Optional[Any] = None
     error: Optional[str] = None
 
-    class Config:
-        frozen = False
-
 
 class Plan(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
     plan_id: str = Field(default_factory=lambda: f"plan-{uuid.uuid4().hex[:8]}")
     goal_id: str
     steps: List[PlanStep] = Field(default_factory=list)
     created_at: float = Field(default_factory=time.time)
 
-    class Config:
-        frozen = False
-
 
 class Goal(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
     goal_id: str = Field(default_factory=lambda: f"goal-{uuid.uuid4().hex[:8]}")
     description: str
     session_id: str = "default_session"
@@ -67,11 +66,10 @@ class Goal(BaseModel):
     state: ExecutionState = ExecutionState.CREATED
     created_at: float = Field(default_factory=time.time)
 
-    class Config:
-        frozen = False
-
 
 class Task(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
     task_id: str = Field(default_factory=lambda: f"task-{uuid.uuid4().hex[:8]}")
     goal_id: Optional[str] = None
     session_id: str = "default_session"
@@ -80,11 +78,10 @@ class Task(BaseModel):
     state: ExecutionState = ExecutionState.CREATED
     created_at: float = Field(default_factory=time.time)
 
-    class Config:
-        frozen = False
-
 
 class Checkpoint(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     checkpoint_id: str = Field(default_factory=lambda: f"chk-{uuid.uuid4().hex[:8]}")
     goal_id: str
     plan_id: str
@@ -93,11 +90,10 @@ class Checkpoint(BaseModel):
     state: ExecutionState = ExecutionState.PAUSED
     timestamp: float = Field(default_factory=time.time)
 
-    class Config:
-        frozen = True
-
 
 class ApprovalRequest(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
     request_id: str = Field(default_factory=lambda: f"appr-{uuid.uuid4().hex[:8]}")
     goal_id: str
     step_id: str
@@ -107,16 +103,13 @@ class ApprovalRequest(BaseModel):
     approved: Optional[bool] = None
     timestamp: float = Field(default_factory=time.time)
 
-    class Config:
-        frozen = False
-
 
 class StepResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     step_id: str
     success: bool
     output: Any = None
     error_message: Optional[str] = None
     execution_time_ms: float = 0.0
 
-    class Config:
-        frozen = True

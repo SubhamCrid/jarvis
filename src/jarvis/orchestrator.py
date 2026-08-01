@@ -174,6 +174,21 @@ class AssistantOrchestrator(BaseServiceProtocol):
             session_id=session_id,
         )
 
+    def _schedule_provider_init(self, provider: Any) -> None:
+        """Schedule provider initialization safely without nested event-loop creation."""
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(provider.initialize())
+        except RuntimeError:
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.run_coroutine_threadsafe(provider.initialize(), loop)
+                else:
+                    loop.run_until_complete(provider.initialize())
+            except Exception as ex:
+                logger.warning(f"Provider initialization background schedule failed: {ex}")
+
     def update_settings(
         self,
         silence_duration_ms: Optional[int] = None,
@@ -184,13 +199,24 @@ class AssistantOrchestrator(BaseServiceProtocol):
         tts_exaggeration: Optional[float] = None,
         tts_enable_fallback: Optional[bool] = None,
         tts_fallback_provider: Optional[str] = None,
+        policy_mode: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Update runtime configuration settings dynamically."""
         updated: Dict[str, Any] = {}
+        if policy_mode is not None:
+            mode_str = str(policy_mode).strip().upper()
+            if self.tools_config:
+                self.tools_config.policy_mode = mode_str
+            if self.tool_runner and hasattr(self.tool_runner, "policy_engine"):
+                self.tool_runner.policy_engine.config.policy_mode = mode_str
+                self.tool_runner.policy_engine.sandbox.permissive = (mode_str == "PERMISSIVE")
+            updated["policy_mode"] = mode_str
+
         if self.voice_capability and silence_duration_ms is not None:
             self.voice_capability.vad.silence_duration_ms = int(silence_duration_ms)
             self.config.vad.silence_duration_ms = int(silence_duration_ms)
             updated["silence_duration_ms"] = int(silence_duration_ms)
+
 
         if tts_fallback_provider is not None:
             val_fb_prov = str(tts_fallback_provider).strip()
@@ -202,11 +228,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
                     try:
                         from jarvis.providers.registry import ProviderRegistry
                         fb = ProviderRegistry.create("tts", val_fb_prov, self.config)
-                        try:
-                            loop = asyncio.get_running_loop()
-                            loop.create_task(fb.initialize())
-                        except RuntimeError:
-                            asyncio.run(fb.initialize())
+                        self._schedule_provider_init(fb)
                         setattr(self.tts, "_fallback_tts", fb)
                     except Exception as fb_err:
                         logger.error(f"Failed to dynamically switch fallback provider to '{val_fb_prov}': {fb_err}")
@@ -224,11 +246,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
                         from jarvis.providers.registry import ProviderRegistry
                         fb_name = getattr(self.tts, "fallback_provider", "edge_tts")
                         fb = ProviderRegistry.create("tts", fb_name, self.config)
-                        try:
-                            loop = asyncio.get_running_loop()
-                            loop.create_task(fb.initialize())
-                        except RuntimeError:
-                            asyncio.run(fb.initialize())
+                        self._schedule_provider_init(fb)
                         setattr(self.tts, "_fallback_tts", fb)
                     except Exception as fb_err:
                         logger.error(f"Failed to dynamically initialize fallback for active TTS: {fb_err}")
@@ -253,18 +271,14 @@ class AssistantOrchestrator(BaseServiceProtocol):
             try:
                 from jarvis.providers.registry import ProviderRegistry
                 new_tts = ProviderRegistry.create("tts", str(tts_provider), self.config)
-                # Initialize in background or current loop
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(new_tts.initialize())
-                except RuntimeError:
-                    asyncio.run(new_tts.initialize())
+                self._schedule_provider_init(new_tts)
                 self.tts = new_tts
                 if self.voice_capability:
                     self.voice_capability.tts = new_tts
                 updated["tts_provider"] = str(tts_provider)
             except Exception as e:
                 logger.error(f"Failed to dynamically switch TTS provider to '{tts_provider}': {e}")
+
 
         if self.tts:
             if tts_voice:

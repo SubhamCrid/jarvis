@@ -4,12 +4,14 @@ Scheduler for background jobs, delayed tasks, and recurring task execution.
 
 import asyncio, time, uuid, logging
 from typing import Any, Callable, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger("jarvis.runtime.scheduler")
 
 
 class ScheduledTask(BaseModel):
+    model_config = ConfigDict(frozen=False)
+
     task_id: str = Field(default_factory=lambda: f"sched-{uuid.uuid4().hex[:8]}")
     name: str
     run_at: float
@@ -17,8 +19,6 @@ class ScheduledTask(BaseModel):
     executed: bool = False
     cancelled: bool = False
 
-    class Config:
-        frozen = False
 
 
 class RuntimeScheduler:
