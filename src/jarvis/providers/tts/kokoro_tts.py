@@ -30,6 +30,8 @@ class KokoroTTS(TTSProtocol):
             voice=config.tts.voice if config.tts.voice else "af_bella",
             sample_rate=config.audio.speaker_sample_rate if config.audio.speaker_sample_rate else 24000,
             speed=config.tts.speed,
+            enable_fallback=config.tts.enable_fallback,
+            fallback_provider=getattr(config.tts, "fallback_provider", "edge_tts"),
         )
 
     def __init__(
@@ -37,12 +39,16 @@ class KokoroTTS(TTSProtocol):
         voice: str = "af_bella",
         sample_rate: int = 24000,
         speed: float = 1.15,
-        lang_code: str = "a"
+        lang_code: str = "a",
+        enable_fallback: bool = False,
+        fallback_provider: str = "edge_tts",
     ) -> None:
         self.voice = voice
         self.sample_rate = sample_rate
         self.speed = speed
         self.lang_code = lang_code
+        self.enable_fallback = enable_fallback
+        self.fallback_provider = fallback_provider
         self._pipelines: Dict[str, Any] = {}
         self._fallback_tts = None
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
@@ -85,7 +91,7 @@ class KokoroTTS(TTSProtocol):
         return target_lang, self.voice
 
     async def initialize(self) -> bool:
-        """Initialize the default Kokoro synthesis pipeline or set standby fallback mode."""
+        """Initialize the default Kokoro synthesis pipeline or set standby fallback mode if allowed."""
         try:
             from kokoro import KPipeline  # type: ignore
             loop = asyncio.get_running_loop()
@@ -98,14 +104,18 @@ class KokoroTTS(TTSProtocol):
             logger.info(f"KokoroTTS initialized successfully (voice: {self.voice}, speed: {self.speed}x, default_lang: {target_lang})")
             return True
         except Exception as e:
-            logger.warning(f"Kokoro package/weights not loaded ({e}). Initializing EdgeTTS fallback mode for KokoroTTS.")
+            logger.warning(f"Kokoro package/weights not loaded ({e}).")
             self._status = ServiceStatus.DEGRADED
-            try:
-                from jarvis.providers.tts.edge_tts_provider import EdgeTTSProvider
-                self._fallback_tts = EdgeTTSProvider(speed=self.speed)
-                await self._fallback_tts.initialize()
-            except Exception as fb_err:
-                logger.error(f"Fallback EdgeTTS init failed: {fb_err}")
+            if self.enable_fallback and self.fallback_provider and self.fallback_provider != "kokoro":
+                logger.info(f"Initializing '{self.fallback_provider}' fallback mode for KokoroTTS.")
+                try:
+                    from jarvis.providers.registry import ProviderRegistry
+                    self._fallback_tts = ProviderRegistry.create("tts", self.fallback_provider, AppConfig())
+                    await self._fallback_tts.initialize()
+                except Exception as fb_err:
+                    logger.error(f"Fallback '{self.fallback_provider}' init failed: {fb_err}")
+            else:
+                logger.info("TTS Fallback is disabled. Running without fallback engine.")
             return False
 
     async def _get_or_load_pipeline(self, lang_code: str):

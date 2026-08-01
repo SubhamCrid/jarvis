@@ -183,6 +183,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
         tts_cfg_weight: Optional[float] = None,
         tts_exaggeration: Optional[float] = None,
         tts_enable_fallback: Optional[bool] = None,
+        tts_fallback_provider: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Update runtime configuration settings dynamically."""
         updated: Dict[str, Any] = {}
@@ -190,6 +191,26 @@ class AssistantOrchestrator(BaseServiceProtocol):
             self.voice_capability.vad.silence_duration_ms = int(silence_duration_ms)
             self.config.vad.silence_duration_ms = int(silence_duration_ms)
             updated["silence_duration_ms"] = int(silence_duration_ms)
+
+        if tts_fallback_provider is not None:
+            val_fb_prov = str(tts_fallback_provider).strip()
+            self.config.tts.fallback_provider = val_fb_prov
+            if self.tts:
+                setattr(self.tts, "fallback_provider", val_fb_prov)
+                # Re-initialize fallback engine if active provider is degraded and fallback enabled
+                if getattr(self.tts, "enable_fallback", False) and getattr(self.tts, "_status", None) != ServiceStatus.RUNNING:
+                    try:
+                        from jarvis.providers.registry import ProviderRegistry
+                        fb = ProviderRegistry.create("tts", val_fb_prov, self.config)
+                        try:
+                            loop = asyncio.get_running_loop()
+                            loop.create_task(fb.initialize())
+                        except RuntimeError:
+                            asyncio.run(fb.initialize())
+                        setattr(self.tts, "_fallback_tts", fb)
+                    except Exception as fb_err:
+                        logger.error(f"Failed to dynamically switch fallback provider to '{val_fb_prov}': {fb_err}")
+            updated["tts_fallback_provider"] = val_fb_prov
 
         if tts_enable_fallback is not None:
             val_bool = bool(tts_enable_fallback)
@@ -200,8 +221,9 @@ class AssistantOrchestrator(BaseServiceProtocol):
                     setattr(self.tts, "_fallback_tts", None)
                 elif getattr(self.tts, "_status", None) != ServiceStatus.RUNNING and getattr(self.tts, "_fallback_tts", None) is None:
                     try:
-                        from jarvis.providers.tts.edge_tts_provider import EdgeTTSProvider
-                        fb = EdgeTTSProvider(speed=getattr(self.tts, "speed", 1.15))
+                        from jarvis.providers.registry import ProviderRegistry
+                        fb_name = getattr(self.tts, "fallback_provider", "edge_tts")
+                        fb = ProviderRegistry.create("tts", fb_name, self.config)
                         try:
                             loop = asyncio.get_running_loop()
                             loop.create_task(fb.initialize())

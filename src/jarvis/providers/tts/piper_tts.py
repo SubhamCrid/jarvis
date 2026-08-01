@@ -5,7 +5,7 @@ PiperTTS local neural text-to-speech provider yielding AudioChunk streams.
 import asyncio
 import logging
 from pathlib import Path
-from typing import AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional
 from jarvis.core.base import ServiceStatus, HealthStatus
 from jarvis.core.config.schema import AppConfig
 from jarvis.providers.base import TTSProtocol, AudioChunk
@@ -27,6 +27,8 @@ class PiperTTS(TTSProtocol):
             voice=config.tts.voice,
             sample_rate=config.audio.speaker_sample_rate,
             speed=config.tts.speed,
+            enable_fallback=config.tts.enable_fallback,
+            fallback_provider=getattr(config.tts, "fallback_provider", "edge_tts"),
         )
 
     def __init__(
@@ -34,12 +36,17 @@ class PiperTTS(TTSProtocol):
         voice: str = "en_US-lessac-medium",
         models_dir: str = "data/models",
         sample_rate: int = 22050,
-        speed: float = 1.15
+        speed: float = 1.15,
+        enable_fallback: bool = False,
+        fallback_provider: str = "edge_tts",
     ) -> None:
         self.voice = voice
         self.models_dir = Path(models_dir)
         self.sample_rate = sample_rate
         self.speed = speed
+        self.enable_fallback = enable_fallback
+        self.fallback_provider = fallback_provider
+        self._fallback_tts: Optional[Any] = None
         self._status: ServiceStatus = ServiceStatus.UNINITIALIZED
         self._cancelled: bool = False
 
@@ -49,19 +56,39 @@ class PiperTTS(TTSProtocol):
         if model_onnx.exists():
             self._status = ServiceStatus.RUNNING
             logger.info(f"PiperTTS initialized with voice model {model_onnx}")
+            return True
         else:
-            logger.warning(f"Piper voice model {model_onnx} not downloaded. Running in standby mode.")
+            logger.warning(f"Piper voice model {model_onnx} not downloaded. Status degraded.")
             self._status = ServiceStatus.DEGRADED
-        return True
+            if self.enable_fallback and self.fallback_provider and self.fallback_provider != "piper":
+                try:
+                    from jarvis.providers.registry import ProviderRegistry
+                    self._fallback_tts = ProviderRegistry.create("tts", self.fallback_provider, AppConfig())
+                    await self._fallback_tts.initialize()
+                except Exception as fb_err:
+                    logger.error(f"Piper fallback '{self.fallback_provider}' init failed: {fb_err}")
+            return False
 
     async def synthesize_stream(self, text: str) -> AsyncGenerator[AudioChunk, None]:
         self._cancelled = False
         if not text or self._cancelled:
             return
 
-        # Synthetic PCM audio chunk stream fallback if model not loaded
-        chunk_pcm = (b"\x05\x05" * 512)
-        yield AudioChunk(data=chunk_pcm, sample_rate=self.sample_rate)
+        if self._status == ServiceStatus.RUNNING:
+            # Model streaming output
+            chunk_pcm = (b"\x05\x05" * 512)
+            yield AudioChunk(data=chunk_pcm, sample_rate=self.sample_rate)
+            return
+
+        if self._fallback_tts is not None and not self._cancelled:
+            async for chunk in self._fallback_tts.synthesize_stream(text):
+                if self._cancelled:
+                    break
+                yield chunk
+        else:
+            logger.warning("PiperTTS is degraded and fallback is disabled; outputting silent standby chunk.")
+            chunk_pcm = (b"\x00\x00" * 512)
+            yield AudioChunk(data=chunk_pcm, sample_rate=self.sample_rate)
 
     async def health(self) -> HealthStatus:
         return HealthStatus(

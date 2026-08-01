@@ -61,6 +61,7 @@ class TTSConfig(BaseModel):
     cfg_weight: float = Field(default=0.5)
     exaggeration: float = Field(default=0.5)
     enable_fallback: bool = Field(default=False)
+    fallback_provider: str = Field(default="edge_tts")
     chunk_queue_size: int = Field(default=20)
 
 

@@ -849,6 +849,16 @@
             </div>
           </div>
 
+          <!-- Fallback Engine Select (Dynamic: Shown only when Fallback checkbox is enabled) -->
+          <div class="control-box" id="fallbackProviderBox" style="display: none;">
+            <label for="ttsFallbackProviderSelect" class="control-label">Fallback Engine Provider</label>
+            <select id="ttsFallbackProviderSelect" class="input-box">
+              <option value="edge_tts">EdgeTTS (Cloud Natural)</option>
+              <option value="piper">Piper Neural (Local)</option>
+              <option value="mock">Mock TTS (Testing)</option>
+            </select>
+          </div>
+
         </div>
       </section>
 
@@ -1350,6 +1360,13 @@
       ]
     };
 
+    const FALLBACK_PROVIDER_OPTIONS = [
+      { value: 'edge_tts', text: 'EdgeTTS (Cloud Natural)' },
+      { value: 'piper', text: 'Piper Neural (Local)' },
+      { value: 'kokoro', text: 'Kokoro-82M (Local Ultra Fast)' },
+      { value: 'mock', text: 'Mock TTS (Testing)' }
+    ];
+
     function toggleChatterboxControls(provider) {
       const container = document.getElementById('chatterboxControlsContainer');
       if (!container) return;
@@ -1360,8 +1377,42 @@
       }
     }
 
+    function updateFallbackProviderUI(enableFallback, currentPrimaryProvider, selectedFallbackProvider) {
+      const box = document.getElementById('fallbackProviderBox');
+      const select = document.getElementById('ttsFallbackProviderSelect');
+      if (!box || !select) return;
+
+      if (!enableFallback) {
+        box.style.display = 'none';
+        return;
+      }
+
+      box.style.display = 'flex';
+      const primary = currentPrimaryProvider || document.getElementById('ttsProviderSelect').value;
+      const currentSelected = selectedFallbackProvider || select.value || 'edge_tts';
+
+      select.innerHTML = '';
+      const validOptions = FALLBACK_PROVIDER_OPTIONS.filter(opt => opt.value !== primary);
+      validOptions.forEach(opt => {
+        const el = document.createElement('option');
+        el.value = opt.value;
+        el.innerText = opt.text;
+        select.appendChild(el);
+      });
+
+      if (validOptions.some(opt => opt.value === currentSelected)) {
+        select.value = currentSelected;
+      } else if (validOptions.length > 0) {
+        select.value = validOptions[0].value;
+      }
+    }
+
     function updateVoiceOptionsForProvider(provider, selectedVoice) {
       toggleChatterboxControls(provider);
+      const isFallbackEnabled = document.getElementById('ttsFallbackCheckbox').checked;
+      const currentFallback = document.getElementById('ttsFallbackProviderSelect').value;
+      updateFallbackProviderUI(isFallbackEnabled, provider, currentFallback);
+
       const select = document.getElementById('ttsVoiceSelect');
       if (!select) return;
       select.innerHTML = '';
@@ -1408,7 +1459,12 @@
           document.getElementById('ttsExaggerationVal').innerText = `${parseFloat(data.tts_exaggeration).toFixed(2)}`;
         }
         if (data.tts_enable_fallback !== undefined) {
-          document.getElementById('ttsFallbackCheckbox').checked = !!data.tts_enable_fallback;
+          const isFallback = !!data.tts_enable_fallback;
+          document.getElementById('ttsFallbackCheckbox').checked = isFallback;
+          updateFallbackProviderUI(isFallback, data.tts_provider, data.tts_fallback_provider);
+        }
+        if (data.tts_fallback_provider) {
+          document.getElementById('ttsFallbackProviderSelect').value = data.tts_fallback_provider;
         }
       } catch (err) {
         console.error('Error loading settings:', err);
@@ -1486,12 +1542,26 @@
     // TTS Fallback Checkbox Handler
     document.getElementById('ttsFallbackCheckbox').addEventListener('change', async (e) => {
       const enabled = e.target.checked;
+      const primary = document.getElementById('ttsProviderSelect').value;
+      const fallbackProv = document.getElementById('ttsFallbackProviderSelect').value;
+      updateFallbackProviderUI(enabled, primary, fallbackProv);
       await fetch('/api/settings', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ tts_enable_fallback: enabled })
+        body: JSON.stringify({ tts_enable_fallback: enabled, tts_fallback_provider: fallbackProv })
       });
-      logEvent('UpdatedSettings', `TTS Fallback: ${enabled ? 'Enabled' : 'Disabled'}`);
+      logEvent('UpdatedSettings', `TTS Fallback: ${enabled ? 'Enabled' : 'Disabled'} (${fallbackProv})`);
+    });
+
+    // TTS Fallback Provider Select Handler
+    document.getElementById('ttsFallbackProviderSelect').addEventListener('change', async (e) => {
+      const fallbackProv = e.target.value;
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tts_fallback_provider: fallbackProv })
+      });
+      logEvent('UpdatedSettings', `Fallback Provider: ${fallbackProv}`);
     });
 
     // 2. VAD Pause Tolerance Slider Handlers (Live input + API change)

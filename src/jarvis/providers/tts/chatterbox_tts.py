@@ -32,6 +32,7 @@ class ChatterboxTTS(TTSProtocol):
             cfg_weight=getattr(config.tts, "cfg_weight", 0.5),
             exaggeration=getattr(config.tts, "exaggeration", 0.5),
             enable_fallback=getattr(config.tts, "enable_fallback", False),
+            fallback_provider=getattr(config.tts, "fallback_provider", "edge_tts"),
         )
 
     def __init__(
@@ -42,6 +43,7 @@ class ChatterboxTTS(TTSProtocol):
         cfg_weight: float = 0.5,
         exaggeration: float = 0.5,
         enable_fallback: bool = False,
+        fallback_provider: str = "edge_tts",
         device: str = "auto",
     ) -> None:
         self.voice = voice
@@ -50,6 +52,7 @@ class ChatterboxTTS(TTSProtocol):
         self.cfg_weight = cfg_weight
         self.exaggeration = exaggeration
         self.enable_fallback = enable_fallback
+        self.fallback_provider = fallback_provider
         self.device = device
 
         self._model: Optional[Any] = None
@@ -127,14 +130,14 @@ class ChatterboxTTS(TTSProtocol):
         except Exception as e:
             logger.warning(f"Chatterbox package/weights not loaded ({e}).")
             self._status = ServiceStatus.DEGRADED
-            if self.enable_fallback:
-                logger.info("Initializing EdgeTTS fallback mode for ChatterboxTTS.")
+            if self.enable_fallback and self.fallback_provider and self.fallback_provider != "chatterbox":
+                logger.info(f"Initializing '{self.fallback_provider}' fallback mode for ChatterboxTTS.")
                 try:
-                    from jarvis.providers.tts.edge_tts_provider import EdgeTTSProvider
-                    self._fallback_tts = EdgeTTSProvider(speed=self.speed)
+                    from jarvis.providers.registry import ProviderRegistry
+                    self._fallback_tts = ProviderRegistry.create("tts", self.fallback_provider, AppConfig())
                     await self._fallback_tts.initialize()
                 except Exception as fb_err:
-                    logger.error(f"Fallback EdgeTTS init failed: {fb_err}")
+                    logger.error(f"Fallback '{self.fallback_provider}' init failed: {fb_err}")
             else:
                 logger.info("TTS Fallback is disabled. Running ChatterboxTTS without fallback engine.")
             return False
