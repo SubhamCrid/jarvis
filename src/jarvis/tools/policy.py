@@ -32,12 +32,13 @@ class ToolPolicyEngine:
 
     def __init__(self, config: ToolsConfig) -> None:
         self.config = config
-        self.sandbox = PathSandbox(config.workspace_root)
+        self.sandbox = PathSandbox(config.workspace_root, permissive=(config.policy_mode == "PERMISSIVE"))
 
     def evaluate(self, spec: ToolSpec, params: Dict[str, Any]) -> PolicyDecision:
         """
         Evaluate if a tool execution is allowed under current policy rules.
         """
+        self.sandbox.permissive = (self.config.policy_mode == "PERMISSIVE")
         manifest = spec.manifest
 
         # 1. Command specific checks for shell execution tools (run FIRST)
@@ -64,7 +65,33 @@ class ToolPolicyEngine:
         if manifest.permission_level == PermissionLevel.READ_ONLY or manifest.read_only:
             return PolicyDecision(allowed=True, reason="READ_ONLY tool auto-approved.")
 
-        # 3. Strict policy mode checks
+        # 3. If PERMISSIVE mode is active, auto-approve without confirmation gates
+        if self.config.policy_mode == "PERMISSIVE":
+            return PolicyDecision(allowed=True, reason="PERMISSIVE mode: unrestricted access approved.")
+
+        # 4. Check write operations targeting paths outside workspace_root in STRICT/BALANCED mode
+        raw_path = params.get("path") or params.get("filepath") or params.get("target_file")
+        if raw_path:
+            try:
+                resolved_path = self.sandbox.validate_and_resolve(raw_path)
+                try:
+                    resolved_path.relative_to(self.config.workspace_root)
+                except ValueError:
+                    # Path resolves outside workspace_root (e.g. Desktop, Downloads, Documents)
+                    return PolicyDecision(
+                        allowed=True,
+                        reason=f"Write operation targeting user folder outside workspace '{resolved_path.parent}' requires explicit confirmation.",
+                        requires_confirmation=True,
+                    )
+            except Exception:
+                if self.config.policy_mode == "STRICT":
+                    return PolicyDecision(
+                        allowed=True,
+                        reason="Write operation targeting location outside workspace boundary requires explicit confirmation in STRICT mode.",
+                        requires_confirmation=True,
+                    )
+
+        # 5. Strict policy mode checks
         if self.config.policy_mode == "STRICT":
             if manifest.permission_level in (PermissionLevel.RISKY, PermissionLevel.ADMIN):
                 return PolicyDecision(
@@ -80,3 +107,4 @@ class ToolPolicyEngine:
                 )
 
         return PolicyDecision(allowed=True, reason="Action approved by policy engine.")
+

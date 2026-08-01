@@ -4,7 +4,7 @@ within the configured workspace root directory.
 """
 
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 
 class PathTraversalError(PermissionError):
@@ -19,9 +19,10 @@ class PathSandbox:
     Confines file operations to workspace_root and user home/OneDrive directories (Desktop, Downloads, Documents).
     """
 
-    def __init__(self, workspace_root: Union[str, Path]) -> None:
+    def __init__(self, workspace_root: Union[str, Path], permissive: bool = False) -> None:
         self.workspace_root = Path(workspace_root).resolve()
         self.home_root = Path.home().resolve()
+        self.permissive = permissive
         self.allowed_roots = [self.workspace_root]
         for d in self._get_desktop_dirs() + self._get_downloads_dirs() + self._get_documents_dirs():
             if d not in self.allowed_roots:
@@ -66,14 +67,17 @@ class PathSandbox:
             pass
         return [c.resolve() for c in candidates if c.exists()]
 
-    def validate_and_resolve(self, raw_path: Union[str, Path], must_exist: bool = False) -> Path:
+    def validate_and_resolve(
+        self, raw_path: Union[str, Path], must_exist: bool = False, permissive: Optional[bool] = None
+    ) -> Path:
         """
         Validate, normalize, and resolve a file or directory path.
 
         :param raw_path: Input path string or Path object.
         :param must_exist: If True, raise FileNotFoundError if target does not exist.
-        :return: Absolute resolved Path object within allowed workspace/home boundaries.
-        :raises PathTraversalError: If target path escapes allowed roots.
+        :param permissive: Override permissive mode behavior.
+        :return: Absolute resolved Path object.
+        :raises PathTraversalError: If target path escapes allowed roots in strict mode.
         :raises FileNotFoundError: If must_exist is True and path does not exist.
         """
         if not raw_path:
@@ -146,6 +150,12 @@ class PathSandbox:
                 candidate = found_candidate or ws_candidate
         else:
             candidate = path_obj.resolve()
+
+        is_permissive = self.permissive if permissive is None else permissive
+        if is_permissive:
+            if must_exist and not candidate.exists():
+                raise FileNotFoundError(f"File or directory does not exist: '{candidate}'")
+            return candidate
 
         # Enforce root confinement using allowed_roots
         allowed = False
