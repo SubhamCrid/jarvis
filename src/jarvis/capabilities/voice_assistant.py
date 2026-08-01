@@ -102,7 +102,7 @@ class VoiceAssistantCapability(BaseCapability):
         vad_threshold: float = 0.02,
         silence_duration_ms: int = 1800,
         followup_timeout_s: float = 6.0,
-        max_history_turns: int = 0,
+        max_history_turns: int = 10,
     ) -> None:
         self.fsm = fsm
         self.bus = bus
@@ -294,10 +294,18 @@ class VoiceAssistantCapability(BaseCapability):
         # 1. Check list directory / files intent
         list_keywords = [
             "list file", "list files", "list directory", "read all the files",
-            "read me all the files", "files in", "current folder", "current directory",
-            "show files", "show directory", "dir", "ls"
+            "read me all the files", "files in", "files on", "files present",
+            "what files", "what is present", "what are present", "what's in",
+            "what is in", "contents of", "show files", "show directory", "dir", "ls",
+            "tell me what files", "tell me what is in", "tell me what's in",
+            "tell me what are present", "see files", "get files", "folder contents"
         ]
-        if any(kw in lower for kw in list_keywords):
+        folder_mention = ("desktop" in lower or "documents" in lower or "downloads" in lower)
+        is_list_intent = any(kw in lower for kw in list_keywords) or (
+            folder_mention and any(kw in lower for kw in ["what about", "show", "tell me", "check", "open", "folder"])
+        )
+
+        if is_list_intent:
             target_dir = "."
             if "desktop" in lower:
                 target_dir = "Desktop"
@@ -305,6 +313,24 @@ class VoiceAssistantCapability(BaseCapability):
                 target_dir = "Downloads"
             elif "documents" in lower:
                 target_dir = "Documents"
+            else:
+                # Contextual resolution for follow-up turns ("there", "that folder", "it", etc.)
+                if any(ref in lower for ref in ["there", "that folder", "that directory", "it"]) and self.session_store:
+                    try:
+                        history = await self.session_store.get_history(session_id, limit=6)
+                        for turn in reversed(history):
+                            c_lower = turn.get("content", "").lower()
+                            if "documents" in c_lower:
+                                target_dir = "Documents"
+                                break
+                            elif "desktop" in c_lower:
+                                target_dir = "Desktop"
+                                break
+                            elif "downloads" in c_lower:
+                                target_dir = "Downloads"
+                                break
+                    except Exception:
+                        pass
             tool_actions.append(("list_directory", {"path": target_dir}))
 
         # 2. Check write file intent
@@ -361,7 +387,7 @@ class VoiceAssistantCapability(BaseCapability):
             tool_actions.append(("read_file", {"path": filepath}))
 
         # 4. Check search / information intent
-        if not tool_actions and any(kw in lower for kw in ["search", "google", "find", "who is", "what is", "tell me", "latest", "lookup", "info", "gemma", "model"]):
+        if not tool_actions and any(kw in lower for kw in ["search", "google", "find me", "find info", "who is", "latest", "lookup", "gemma", "model", "search for", "tell me about", "tell me who"]):
             query = prompt
             for prefix in ["search for", "web search", "google", "find me on", "find me", "find info on", "find", "tell me about", "look up"]:
                 if lower.startswith(prefix):

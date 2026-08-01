@@ -163,13 +163,34 @@ class ListDirectoryTool(BaseToolAdapter):
         if not resolved_path.is_dir():
             raise ValueError(f"Path '{raw_path}' is not a directory.")
 
+        target_dirs = [resolved_path]
+        clean_raw = str(raw_path).lower().strip()
+        if clean_raw == "desktop":
+            for d in self.sandbox._get_desktop_dirs():
+                if d not in target_dirs:
+                    target_dirs.append(d)
+        elif clean_raw == "documents":
+            for d in self.sandbox._get_documents_dirs():
+                if d not in target_dirs:
+                    target_dirs.append(d)
+        elif clean_raw == "downloads":
+            for d in self.sandbox._get_downloads_dirs():
+                if d not in target_dirs:
+                    target_dirs.append(d)
+
         items = []
-        for item in resolved_path.iterdir():
-            items.append({
-                "name": item.name,
-                "is_directory": item.is_dir(),
-                "size_bytes": item.stat().st_size if item.is_file() else 0,
-            })
+        seen_names = set()
+        for t_dir in target_dirs:
+            if not t_dir.is_dir():
+                continue
+            for item in t_dir.iterdir():
+                if item.name not in seen_names:
+                    seen_names.add(item.name)
+                    items.append({
+                        "name": item.name,
+                        "is_directory": item.is_dir(),
+                        "size_bytes": item.stat().st_size if item.is_file() else 0,
+                    })
 
         return {
             "directory": _format_path(self.sandbox, resolved_path),
@@ -215,12 +236,23 @@ class SearchFilesTool(BaseToolAdapter):
         matched_files = []
 
         search_dirs = [resolved_path]
-        if raw_path.lower() == "desktop":
+        clean_raw = str(raw_path).lower().strip()
+        if clean_raw == "desktop":
             for d in self.sandbox._get_desktop_dirs():
+                if d not in search_dirs:
+                    search_dirs.append(d)
+        elif clean_raw == "documents":
+            for d in self.sandbox._get_documents_dirs():
+                if d not in search_dirs:
+                    search_dirs.append(d)
+        elif clean_raw == "downloads":
+            for d in self.sandbox._get_downloads_dirs():
                 if d not in search_dirs:
                     search_dirs.append(d)
 
         for s_dir in search_dirs:
+            if not s_dir.is_dir():
+                continue
             for p in s_dir.glob(pattern):
                 try:
                     clean_p = self.sandbox.validate_and_resolve(p)

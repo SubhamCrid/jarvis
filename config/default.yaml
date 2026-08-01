@@ -48,7 +48,7 @@ tts:
   chunk_queue_size: 20
 
 session:
-  max_history_turns: 0
+  max_history_turns: 10
   save_audio_logs: false
 
 observability:

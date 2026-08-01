@@ -131,3 +131,43 @@ async def test_voice_capability_tool_intents():
 
     await orchestrator.shutdown()
 
+
+@pytest.mark.asyncio
+async def test_voice_capability_desktop_and_documents_intent():
+    config = load_config(user_overrides={"system": {"environment": "test"}})
+    orchestrator = AssistantOrchestrator(config)
+    await orchestrator.initialize()
+
+    # 1. Test "Can you tell me what files are present in my desktop?"
+    res1 = await orchestrator.voice_capability._try_execute_tool_intent(
+        "Can you tell me what files are present in my desktop?", session_id="test_desktop_sess"
+    )
+    assert res1 is not None
+    assert "list_directory returned:" in res1
+
+    # 2. Test "what about documents folder?"
+    res2 = await orchestrator.voice_capability._try_execute_tool_intent(
+        "what about documents folder?", session_id="test_desktop_sess"
+    )
+    assert res2 is not None
+    assert "list_directory returned:" in res2
+
+    # Save turns in session store to simulate multi-turn dialog
+    await orchestrator.session_store.save_turn("test_desktop_sess", "user", "what about documents folder?")
+    await orchestrator.session_store.save_turn("test_desktop_sess", "assistant", "You can find your Documents folder...")
+
+    # 3. Test follow-up "want Q to tell me what are present there."
+    res3 = await orchestrator.voice_capability._try_execute_tool_intent(
+        "want Q to tell me what are present there.", session_id="test_desktop_sess"
+    )
+    assert res3 is not None
+    assert "list_directory returned:" in res3
+
+    await orchestrator.shutdown()
+
+
+def test_default_max_history_turns_setting():
+    config = load_config(user_overrides={"system": {"environment": "test"}})
+    assert config.session.max_history_turns == 10
+
+

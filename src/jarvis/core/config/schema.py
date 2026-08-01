@@ -67,7 +67,7 @@ class TTSConfig(BaseModel):
 
 
 class SessionConfig(BaseModel):
-    max_history_turns: int = Field(default=0)
+    max_history_turns: int = Field(default=10)
     save_audio_logs: bool = Field(default=False)
 
 
