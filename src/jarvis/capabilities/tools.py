@@ -35,10 +35,10 @@ class ToolsCapability(BaseCapability):
         self._status = ServiceStatus.UNINITIALIZED
 
     async def initialize(self) -> bool:
-        """Register default backend tool adapters if registry is empty."""
+        """Register default backend tool adapters if not already registered."""
         workspace_root = self.runner.config.workspace_root
 
-        if not self.registry.list_names():
+        if "read_file" not in self.registry.list_names():
             read_tool = ReadFileTool(workspace_root)
             write_tool = WriteFileTool(workspace_root)
             list_tool = ListDirectoryTool(workspace_root)

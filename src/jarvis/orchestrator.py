@@ -1,6 +1,6 @@
 """
 Assistant orchestrator container responsible for dynamic dependency injection,
-lifecycle control, task routing across voice capabilities, tool platform, and hardware providers.
+lifecycle control, task routing across voice capabilities, tool platform, search platform, and hardware providers.
 """
 
 import logging
@@ -18,6 +18,9 @@ from jarvis.core.observability import ObservabilityService
 from jarvis.core.planner import SimplePlanner
 from jarvis.core.task_manager import TaskManager
 from jarvis.providers import ProviderRegistry
+from jarvis.search.adapter import SearchToolAdapter
+from jarvis.search.capability import SearchCapability
+from jarvis.search.pipeline import SearchPipelineEngine
 from jarvis.tools.capability import ToolsCapability
 from jarvis.tools.config import ToolsConfig
 from jarvis.tools.registry import ToolRegistry
@@ -29,7 +32,7 @@ logger = logging.getLogger("jarvis.orchestrator")
 class AssistantOrchestrator(BaseServiceProtocol):
     """
     Central dependency orchestrator managing dynamic system provider instantiation via ProviderRegistry,
-    capability registration, tool execution platform, lifecycle startup/shutdown, and task delegation.
+    capability registration, tool execution platform, search platform, lifecycle startup/shutdown, and task delegation.
     """
 
     def __init__(self, config: Optional[AppConfig] = None) -> None:
@@ -49,6 +52,10 @@ class AssistantOrchestrator(BaseServiceProtocol):
         self.tool_registry = ToolRegistry()
         self.tool_runner = ToolRunner(config=self.tools_config)
         self.tools_capability: Optional[ToolsCapability] = None
+
+        # Search Platform components
+        self.search_engine = SearchPipelineEngine()
+        self.search_capability: Optional[SearchCapability] = None
 
         self.audio_session: Any = None
         self.wakeword: Any = None
@@ -108,13 +115,22 @@ class AssistantOrchestrator(BaseServiceProtocol):
         await self.voice_capability.initialize()
         self.capability_registry.register(self.voice_capability)
 
+        # Register SearchToolAdapter into ToolRegistry
+        search_adapter = SearchToolAdapter(self.search_engine)
+        self.tool_registry.register(search_adapter.spec, search_adapter)
+
         # Initialize Tools capability
         self.tools_capability = ToolsCapability(self.tool_registry, self.tool_runner)
         await self.tools_capability.initialize()
         self.capability_registry.register(self.tools_capability)
 
+        # Initialize Search capability
+        self.search_capability = SearchCapability(self.search_engine)
+        await self.search_capability.initialize()
+        self.capability_registry.register(self.search_capability)
+
         self._status = ServiceStatus.RUNNING
-        logger.info("AssistantOrchestrator successfully initialized with Voice and Tools capabilities.")
+        logger.info("AssistantOrchestrator successfully initialized with Voice, Tools, and Search capabilities.")
         return True
 
     async def start(self) -> None:
@@ -168,6 +184,11 @@ class AssistantOrchestrator(BaseServiceProtocol):
             tool_h = await self.tools_capability.health()
             tool_health_info = tool_h.details
 
+        search_health_info = None
+        if self.search_capability:
+            search_h = await self.search_capability.health()
+            search_health_info = search_h.details
+
         return HealthStatus(
             status=self._status,
             message="Assistant Orchestrator status",
@@ -176,6 +197,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
                 "fsm_state": self.fsm.state.value if self.fsm else "N/A",
                 "registered_providers": ProviderRegistry.list_providers(),
                 "tool_platform_health": tool_health_info,
+                "search_platform_health": search_health_info,
             },
         )
 
@@ -187,6 +209,8 @@ class AssistantOrchestrator(BaseServiceProtocol):
             await self.voice_capability.shutdown()
         if self.tools_capability:
             await self.tools_capability.shutdown()
+        if self.search_capability:
+            await self.search_capability.shutdown()
         self._status = ServiceStatus.STOPPED
 
     async def cancel(self) -> None:
@@ -195,3 +219,5 @@ class AssistantOrchestrator(BaseServiceProtocol):
             await self.voice_capability.cancel()
         if self.tools_capability:
             await self.tools_capability.cancel()
+        if self.search_capability:
+            await self.search_capability.cancel()
