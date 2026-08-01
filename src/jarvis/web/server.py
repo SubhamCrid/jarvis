@@ -216,10 +216,12 @@ class WebDashboardServer:
 
     async def _handle_get_settings(self, request: web.Request) -> web.Response:
         silence_ms = getattr(self.orchestrator.config.vad, "silence_duration_ms", 1800)
-        voice = getattr(self.orchestrator.config.tts, "voice", "en-US-AvaMultilingualNeural")
+        provider = getattr(self.orchestrator.config.tts, "provider", "kokoro")
+        voice = getattr(self.orchestrator.config.tts, "voice", "af_bella")
         speed = getattr(self.orchestrator.config.tts, "speed", 1.15)
         return web.json_response({
             "silence_duration_ms": silence_ms,
+            "tts_provider": provider,
             "tts_voice": voice,
             "tts_speed": speed,
         })
@@ -227,11 +229,13 @@ class WebDashboardServer:
     async def _handle_update_settings(self, request: web.Request) -> web.Response:
         data = await request.json()
         silence_ms = data.get("silence_duration_ms")
+        tts_provider = data.get("tts_provider")
         tts_voice = data.get("tts_voice")
         tts_speed = data.get("tts_speed")
 
         updated = self.orchestrator.update_settings(
             silence_duration_ms=silence_ms,
+            tts_provider=tts_provider,
             tts_voice=tts_voice,
             tts_speed=tts_speed,
         )

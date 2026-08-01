@@ -176,6 +176,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
     def update_settings(
         self,
         silence_duration_ms: Optional[int] = None,
+        tts_provider: Optional[str] = None,
         tts_voice: Optional[str] = None,
         tts_speed: Optional[float] = None,
     ) -> Dict[str, Any]:
@@ -185,6 +186,24 @@ class AssistantOrchestrator(BaseServiceProtocol):
             self.voice_capability.vad.silence_duration_ms = int(silence_duration_ms)
             self.config.vad.silence_duration_ms = int(silence_duration_ms)
             updated["silence_duration_ms"] = int(silence_duration_ms)
+
+        if tts_provider and tts_provider != self.config.tts.provider:
+            self.config.tts.provider = str(tts_provider)
+            try:
+                from jarvis.providers.registry import ProviderRegistry
+                new_tts = ProviderRegistry.create("tts", str(tts_provider), self.config)
+                # Initialize in background or current loop
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(new_tts.initialize())
+                except RuntimeError:
+                    asyncio.run(new_tts.initialize())
+                self.tts = new_tts
+                if self.voice_capability:
+                    self.voice_capability.tts = new_tts
+                updated["tts_provider"] = str(tts_provider)
+            except Exception as e:
+                logger.error(f"Failed to dynamically switch TTS provider to '{tts_provider}': {e}")
 
         if self.tts:
             if tts_voice:

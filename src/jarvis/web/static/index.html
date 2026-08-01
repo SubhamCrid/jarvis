@@ -801,12 +801,24 @@
           </div>
 
           <div class="control-box">
+            <label for="ttsProviderSelect" class="control-label">TTS Engine Provider</label>
+            <select id="ttsProviderSelect" class="input-box">
+              <option value="kokoro">Kokoro-82M (Local Ultra Fast)</option>
+              <option value="edge_tts">EdgeTTS (Cloud Natural)</option>
+              <option value="piper">Piper Neural (Local)</option>
+              <option value="mock">Mock TTS (Testing)</option>
+            </select>
+          </div>
+
+          <div class="control-box">
             <label for="ttsVoiceSelect" class="control-label">TTS Voice Model</label>
             <select id="ttsVoiceSelect" class="input-box">
-              <option value="en-US-AvaMultilingualNeural">Ava Multilingual (English)</option>
-              <option value="en-US-AndrewMultilingualNeural">Andrew Multilingual (English)</option>
-              <option value="hi-IN-SwaraNeural">Swara Neural (Hindi)</option>
-              <option value="hi-IN-MadhurNeural">Madhur Neural (Hindi)</option>
+              <option value="af_bella">Bella (American Female)</option>
+              <option value="af_sarah">Sarah (American Female)</option>
+              <option value="am_adam">Adam (American Male)</option>
+              <option value="am_michael">Michael (American Male)</option>
+              <option value="bf_emma">Emma (British Female)</option>
+              <option value="bm_george">George (British Male)</option>
             </select>
           </div>
 
@@ -1184,6 +1196,13 @@
     function addChatMessage(role, content) {
       activeAssistantBubble = null;
       const history = document.getElementById('chatHistory');
+      const lastMsg = history.lastElementChild;
+      if (lastMsg && lastMsg.classList.contains(`msg-${role}`)) {
+        const textSpan = lastMsg.querySelector('span');
+        if (textSpan && textSpan.innerText.trim() === String(content).trim()) {
+          return;
+        }
+      }
       const msg = document.createElement('div');
       msg.className = `msg-bubble msg-${role}`;
       msg.innerHTML = `<span>${escapeHtml(content)}</span><div class="msg-meta">${role === 'user' ? 'You' : 'Jarvis'} • ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>`;
@@ -1263,6 +1282,54 @@
       }
     }
 
+    const PROVIDER_VOICES = {
+      kokoro: [
+        { value: 'af_bella', text: 'Bella (American Female - Natural)' },
+        { value: 'af_sarah', text: 'Sarah (American Female)' },
+        { value: 'am_adam', text: 'Adam (American Male)' },
+        { value: 'am_michael', text: 'Michael (American Male)' },
+        { value: 'hf_alpha', text: 'Alpha (Hindi Female - हिंदी)' },
+        { value: 'hm_omega', text: 'Omega (Hindi Male - हिंदी)' },
+        { value: 'ef_dora', text: 'Dora (Spanish Female - Español)' },
+        { value: 'ff_siwis', text: 'Siwis (French Female - Français)' },
+        { value: 'jf_alpha', text: 'Alpha (Japanese Female - 日本語)' },
+        { value: 'zf_xiaobei', text: 'Xiaobei (Mandarin Female - 中文)' },
+        { value: 'bf_emma', text: 'Emma (British Female)' },
+        { value: 'bm_george', text: 'George (British Male)' }
+      ],
+      edge_tts: [
+        { value: 'en-US-AvaMultilingualNeural', text: 'Ava Multilingual (English)' },
+        { value: 'en-US-AndrewMultilingualNeural', text: 'Andrew Multilingual (English)' },
+        { value: 'hi-IN-SwaraNeural', text: 'Swara Neural (Hindi)' },
+        { value: 'hi-IN-MadhurNeural', text: 'Madhur Neural (Hindi)' }
+      ],
+      piper: [
+        { value: 'en_US-lessac-medium', text: 'Lessac Medium (English)' },
+        { value: 'en_US-amy-medium', text: 'Amy Medium (English)' }
+      ],
+      mock: [
+        { value: 'mock', text: 'Mock Synthetic Voice' }
+      ]
+    };
+
+    function updateVoiceOptionsForProvider(provider, selectedVoice) {
+      const select = document.getElementById('ttsVoiceSelect');
+      if (!select) return;
+      select.innerHTML = '';
+      const voices = PROVIDER_VOICES[provider] || PROVIDER_VOICES.kokoro;
+      voices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.value;
+        opt.innerText = v.text;
+        select.appendChild(opt);
+      });
+      if (selectedVoice && voices.some(v => v.value === selectedVoice)) {
+        select.value = selectedVoice;
+      } else {
+        select.value = voices[0].value;
+      }
+    }
+
     // Settings API & Audio Device Fetching
     async function loadSettings() {
       try {
@@ -1272,7 +1339,11 @@
           document.getElementById('silenceRange').value = data.silence_duration_ms;
           document.getElementById('silenceVal').innerText = `${data.silence_duration_ms} ms`;
         }
-        if (data.tts_voice) {
+        if (data.tts_provider) {
+          const provSelect = document.getElementById('ttsProviderSelect');
+          if (provSelect) provSelect.value = data.tts_provider;
+          updateVoiceOptionsForProvider(data.tts_provider, data.tts_voice);
+        } else if (data.tts_voice) {
           document.getElementById('ttsVoiceSelect').value = data.tts_voice;
         }
         if (data.tts_speed) {
@@ -1336,7 +1407,19 @@
       logEvent('UpdatedSettings', `VAD Pause: ${val} ms`);
     });
 
-    // 3. TTS Voice Selection Handler
+    // 3. TTS Provider & Voice Selection Handlers
+    document.getElementById('ttsProviderSelect').addEventListener('change', async (e) => {
+      const provider = e.target.value;
+      updateVoiceOptionsForProvider(provider);
+      const voice = document.getElementById('ttsVoiceSelect').value;
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tts_provider: provider, tts_voice: voice })
+      });
+      logEvent('UpdatedSettings', `TTS Provider: ${provider}, Voice: ${voice}`);
+    });
+
     document.getElementById('ttsVoiceSelect').addEventListener('change', async (e) => {
       const voice = e.target.value;
       await fetch('/api/settings', {

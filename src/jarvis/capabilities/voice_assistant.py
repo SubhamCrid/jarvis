@@ -6,8 +6,10 @@ barge-in interruption detection, and event broadcasting.
 
 import asyncio
 import logging
+from pathlib import Path
 import re
 import time
+import uuid
 from typing import Any, Dict, List, Optional
 
 from jarvis.capabilities.base import BaseCapability, PermissionEnum

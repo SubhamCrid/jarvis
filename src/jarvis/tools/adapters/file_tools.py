@@ -214,14 +214,22 @@ class SearchFilesTool(BaseToolAdapter):
         resolved_path = self.sandbox.validate_and_resolve(raw_path, must_exist=True)
         matched_files = []
 
-        for p in resolved_path.glob(pattern):
-            try:
-                # Ensure each matched path is inside sandbox
-                clean_p = self.sandbox.validate_and_resolve(p)
-                if clean_p.is_file():
-                    matched_files.append(_format_path(self.sandbox, clean_p))
-            except Exception:
-                continue
+        search_dirs = [resolved_path]
+        if raw_path.lower() == "desktop":
+            for d in self.sandbox._get_desktop_dirs():
+                if d not in search_dirs:
+                    search_dirs.append(d)
+
+        for s_dir in search_dirs:
+            for p in s_dir.glob(pattern):
+                try:
+                    clean_p = self.sandbox.validate_and_resolve(p)
+                    if clean_p.is_file():
+                        formatted = _format_path(self.sandbox, clean_p)
+                        if formatted not in matched_files:
+                            matched_files.append(formatted)
+                except Exception:
+                    continue
 
         return {
             "pattern": pattern,
