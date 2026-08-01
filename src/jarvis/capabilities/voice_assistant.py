@@ -126,10 +126,12 @@ class VoiceAssistantCapability(BaseCapability):
         self._preroll_buffer: deque = deque(maxlen=4)
         self._token_queue: BoundedQueue[str] = BoundedQueue(maxsize=100)
         self._active_task: Optional[asyncio.Task] = None
+        self._tts_worker_task: Optional[asyncio.Task] = None
         self._is_cancelled: bool = False
         self._speaking_start_time: float = 0.0
         self._listening_start_time: float = 0.0
         self._consecutive_speech_count: int = 0
+        self._speech_energy_accumulator: float = 0.0
 
     def _seed_audio_buffer_from_preroll(self) -> None:
         """Seed initial listening audio buffer with rolling pre-roll history to prevent cutting off prompt start."""
@@ -202,38 +204,36 @@ class VoiceAssistantCapability(BaseCapability):
                 self._active_task = asyncio.create_task(self._process_utterance(pcm_copy))
 
         elif current_state == FSMState.SPEAKING:
-            if time.perf_counter() - self._speaking_start_time < 0.5:
-                self._consecutive_speech_count = 0
+            if time.perf_counter() - self._speaking_start_time < 0.2:
+                self._speech_energy_accumulator = 0.0
                 return
 
             rms = self.vad.calculate_rms(pcm_data)
 
             # Ignore muted microphones or zero/near-zero digital silence
             if rms < 0.004:
-                self._consecutive_speech_count = 0
+                self._speech_energy_accumulator = 0.0
                 return
 
-            is_playing = getattr(self.audio_session, "is_playing", False)
-            # Require higher threshold & sustained speech when speaker playback is active to prevent echo self-interruption
-            barge_in_threshold = max(0.065, self.vad.energy_threshold * 3.5) if is_playing else max(0.04, self.vad.energy_threshold * 2.0)
-            required_consecutive_frames = 8 if is_playing else 3
+            speech_threshold = max(0.025, self.vad.energy_threshold * 1.25)
 
-            if rms >= barge_in_threshold:
-                self._consecutive_speech_count += 1
-                if self._consecutive_speech_count >= required_consecutive_frames:
+            if rms >= speech_threshold:
+                self._speech_energy_accumulator += 1.0
+                if self._speech_energy_accumulator >= 2.0:
                     logger.info(
-                        f"User barge-in interrupt detected (RMS={rms:.4f}, frames={self._consecutive_speech_count}). Halting speech output."
+                        f"User barge-in interrupt detected (RMS={rms:.4f}, score={self._speech_energy_accumulator:.1f}). Halting speech output."
                     )
                     self.observability.increment_counter("cancellation_count")
                     await self.cancel()
                     await self.bus.publish(TaskCancelled(reason="Barge-in user speech"))
                     await self.fsm.transition_to(FSMState.LISTENING)
-                    self._seed_audio_buffer_from_preroll()
+                    self._audio_buffer.clear()
+                    self._preroll_buffer.clear()
                     self.vad.reset()
                     self._listening_start_time = time.perf_counter()
-                    self._consecutive_speech_count = 0
+                    self._speech_energy_accumulator = 0.0
             else:
-                self._consecutive_speech_count = 0
+                self._speech_energy_accumulator = max(0.0, self._speech_energy_accumulator - 0.5)
 
     async def _process_utterance(self, pcm_bytes: bytes, session_id: str = "default_session") -> None:
         """Transcribe microphone audio and execute the response generation pipeline."""
@@ -493,7 +493,7 @@ class VoiceAssistantCapability(BaseCapability):
 
             self.chunker.reset()
             sentence_queue: asyncio.Queue = asyncio.Queue()
-            tts_worker_task = asyncio.create_task(self._tts_pipeline_worker(sentence_queue))
+            self._tts_worker_task = asyncio.create_task(self._tts_pipeline_worker(sentence_queue))
 
             async for token in self.llm.generate_stream(llm_prompt, formatted_history):
                 if self._is_cancelled:
@@ -525,7 +525,8 @@ class VoiceAssistantCapability(BaseCapability):
 
             # Signal end of sentence stream and await synthesis task completion
             await sentence_queue.put(None)
-            await tts_worker_task
+            if self._tts_worker_task:
+                await self._tts_worker_task
 
             if not self._is_cancelled and hasattr(self.audio_session, "wait_for_playback_complete"):
                 await self.audio_session.wait_for_playback_complete()
@@ -584,9 +585,11 @@ class VoiceAssistantCapability(BaseCapability):
                 sentence_queue.task_done()
                 continue
 
-            self._speaking_start_time = time.perf_counter()
-            self._consecutive_speech_count = 0
-            await self.fsm.transition_to(FSMState.SPEAKING)
+            if self.fsm.state != FSMState.SPEAKING:
+                self._speaking_start_time = time.perf_counter()
+                self._speech_energy_accumulator = 0.0
+                await self.fsm.transition_to(FSMState.SPEAKING)
+
             await self.bus.publish(SentenceReady(sentence=sentence))
 
             t_tts_start = time.perf_counter()
@@ -615,10 +618,10 @@ class VoiceAssistantCapability(BaseCapability):
             return
 
         sentence_queue: asyncio.Queue = asyncio.Queue()
-        tts_worker_task = asyncio.create_task(self._tts_pipeline_worker(sentence_queue))
+        self._tts_worker_task = asyncio.create_task(self._tts_pipeline_worker(sentence_queue))
         await sentence_queue.put(sentence)
         await sentence_queue.put(None)
-        await tts_worker_task
+        await self._tts_worker_task
 
         if not self._is_cancelled and hasattr(self.audio_session, "wait_for_playback_complete"):
             await self.audio_session.wait_for_playback_complete()
@@ -668,6 +671,9 @@ class VoiceAssistantCapability(BaseCapability):
             self.wakeword.reset()
         await self.bus.publish(TaskCancelled(reason="Barge-in / User Cancellation"))
         current = asyncio.current_task()
+        if self._tts_worker_task and self._tts_worker_task != current:
+            await safe_cancel_task(self._tts_worker_task)
+            self._tts_worker_task = None
         if self._active_task and self._active_task != current:
             await safe_cancel_task(self._active_task)
             self._active_task = None

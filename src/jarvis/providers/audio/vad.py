@@ -53,11 +53,12 @@ class VADEngine:
         rms = self.calculate_rms(pcm_bytes)
         chunk_duration_ms = (len(pcm_bytes) / (2 * self.sample_rate)) * 1000.0
 
-        # Adaptively update background noise floor during silence
+        # Adaptively update background noise floor during silence (capped at 0.75x energy_threshold)
         if not self._in_speech and rms < self.energy_threshold * 2.0:
-            self._noise_floor = 0.95 * self._noise_floor + 0.05 * rms
+            max_noise_floor = self.energy_threshold * 0.75
+            self._noise_floor = min(max_noise_floor, 0.95 * self._noise_floor + 0.05 * rms)
 
-        effective_threshold = max(self.energy_threshold, self._noise_floor * 2.0)
+        effective_threshold = min(self.energy_threshold, max(self.energy_threshold * 0.8, self._noise_floor * 2.0))
         is_speech = rms >= effective_threshold
         speech_ended = False
 
@@ -84,4 +85,5 @@ class VADEngine:
     def reset(self) -> None:
         self._in_speech = False
         self._accumulated_silence_ms = 0.0
+        self._noise_floor = self.energy_threshold * 0.5
 
