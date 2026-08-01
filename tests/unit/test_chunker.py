@@ -38,3 +38,12 @@ def test_sentence_chunker_filename_preservation():
     flushed = chunker.flush()
     assert flushed == 'I couldn\'t find a file named "node.txt" within the current folder or any of its parent directories when last checked.'
 
+
+def test_sentence_chunker_clause_split():
+    chunker = SentenceChunker(min_sentence_len=8)
+    c1 = chunker.add_token("I'm Hiru, ")
+    assert c1 == ["I'm Hiru,"]
+    c2 = chunker.add_token("not compared to any countries. ")
+    assert c2 == ["not compared to any countries."]
+
+

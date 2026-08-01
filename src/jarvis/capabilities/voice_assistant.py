@@ -455,7 +455,8 @@ class VoiceAssistantCapability(BaseCapability):
             full_response_text = ""
 
             self.chunker.reset()
-            max_sentences_per_turn = 3
+            sentence_queue: asyncio.Queue = asyncio.Queue()
+            tts_worker_task = asyncio.create_task(self._tts_pipeline_worker(sentence_queue))
 
             async for token in self.llm.generate_stream(llm_prompt, formatted_history):
                 if self._is_cancelled:
@@ -474,21 +475,25 @@ class VoiceAssistantCapability(BaseCapability):
                 for sentence in sentence_chunks:
                     if self._is_cancelled:
                         break
-                    await self._synthesize_and_speak(sentence)
+                    await sentence_queue.put(sentence)
 
-                if self.chunker._sentence_count >= max_sentences_per_turn:
-                    logger.info(f"Maximum sentence threshold ({max_sentences_per_turn}) reached for turn.")
-                    break
-
-            if self.chunker._sentence_count < max_sentences_per_turn:
-                remaining_sentence = self.chunker.flush()
-                if remaining_sentence and not self._is_cancelled:
-                    await self._synthesize_and_speak(remaining_sentence)
+            remaining_sentence = self.chunker.flush()
+            if remaining_sentence and not self._is_cancelled:
+                await sentence_queue.put(remaining_sentence)
 
             if not full_response_text.strip() and not self._is_cancelled:
                 fallback_msg = "I heard you clearly! How can I help you today?"
                 full_response_text = fallback_msg
-                await self._synthesize_and_speak(fallback_msg)
+                await sentence_queue.put(fallback_msg)
+
+            # Signal end of sentence stream and await synthesis task completion
+            await sentence_queue.put(None)
+            await tts_worker_task
+
+            if not self._is_cancelled and hasattr(self.audio_session, "wait_for_playback_complete"):
+                await self.audio_session.wait_for_playback_complete()
+
+            await self.bus.publish(PlaybackFinished())
 
             if (
                 getattr(self.llm, "has_error", False)
@@ -524,31 +529,59 @@ class VoiceAssistantCapability(BaseCapability):
                     self._listening_start_time = time.perf_counter()
                     await self.fsm.transition_to(FSMState.LISTENING)
 
+    async def _tts_pipeline_worker(self, sentence_queue: asyncio.Queue) -> None:
+        """Background worker consuming queued text sentences and streaming synthesis into speaker queue."""
+        first_chunk = True
+
+        while not self._is_cancelled:
+            try:
+                sentence = await sentence_queue.get()
+            except asyncio.CancelledError:
+                break
+
+            if sentence is None:
+                sentence_queue.task_done()
+                break
+
+            if self._is_cancelled or getattr(self.audio_session, "_stop_requested", False):
+                sentence_queue.task_done()
+                continue
+
+            self._speaking_start_time = time.perf_counter()
+            self._consecutive_speech_count = 0
+            await self.fsm.transition_to(FSMState.SPEAKING)
+            await self.bus.publish(SentenceReady(sentence=sentence))
+
+            t_tts_start = time.perf_counter()
+
+            try:
+                async for audio_chunk in self.tts.synthesize_stream(sentence):
+                    if self._is_cancelled or getattr(self.audio_session, "_stop_requested", False):
+                        logger.info("Speech synthesis aborted due to cancellation.")
+                        break
+
+                    if first_chunk:
+                        tts_fa = (time.perf_counter() - t_tts_start) * 1000.0
+                        self.observability.record_latency("tts_first_audio", tts_fa)
+                        first_chunk = False
+
+                    await self.bus.publish(AudioChunkReady(audio_bytes=audio_chunk.data))
+                    await self.audio_session.play_audio_chunk(audio_chunk)
+            except Exception as synth_err:
+                logger.error(f"Error during streaming sentence synthesis: {synth_err}")
+            finally:
+                sentence_queue.task_done()
+
     async def _synthesize_and_speak(self, sentence: str) -> None:
-        """Synthesize sentence text to speech audio chunks and queue for playback."""
+        """Synthesize single sentence text to speech audio chunks and queue for playback."""
         if not sentence or self._is_cancelled or getattr(self.audio_session, "_stop_requested", False):
             return
 
-        self._speaking_start_time = time.perf_counter()
-        self._consecutive_speech_count = 0
-        await self.fsm.transition_to(FSMState.SPEAKING)
-        await self.bus.publish(SentenceReady(sentence=sentence))
-
-        t_tts_start = time.perf_counter()
-        first_chunk = True
-
-        async for audio_chunk in self.tts.synthesize_stream(sentence):
-            if self._is_cancelled or getattr(self.audio_session, "_stop_requested", False):
-                logger.info("Speech synthesis aborted due to cancellation.")
-                break
-
-            if first_chunk:
-                tts_fa = (time.perf_counter() - t_tts_start) * 1000.0
-                self.observability.record_latency("tts_first_audio", tts_fa)
-                first_chunk = False
-
-            await self.bus.publish(AudioChunkReady(audio_bytes=audio_chunk.data))
-            await self.audio_session.play_audio_chunk(audio_chunk)
+        sentence_queue: asyncio.Queue = asyncio.Queue()
+        tts_worker_task = asyncio.create_task(self._tts_pipeline_worker(sentence_queue))
+        await sentence_queue.put(sentence)
+        await sentence_queue.put(None)
+        await tts_worker_task
 
         if not self._is_cancelled and hasattr(self.audio_session, "wait_for_playback_complete"):
             await self.audio_session.wait_for_playback_complete()

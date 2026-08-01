@@ -6,7 +6,7 @@ with automatic script detection and pipeline caching.
 
 import asyncio
 import logging
-from typing import AsyncGenerator, Dict, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, Optional, Tuple
 import numpy as np
 
 from jarvis.core.base import ServiceStatus, HealthStatus
@@ -139,35 +139,39 @@ class KokoroTTS(TTSProtocol):
                 try:
                     loop = asyncio.get_running_loop()
 
-                    def generate_audio_chunks():
-                        chunks = []
-                        # KPipeline yields (graphemes, phonemes, audio_tensor)
-                        generator = pipeline(text, voice=active_voice, speed=self.speed, split_pattern=r'\n+')
-                        for _, _, audio in generator:
-                            if audio is not None:
-                                # Convert PyTorch tensor or numpy float32 to int16 PCM
-                                if hasattr(audio, 'numpy'):
-                                    audio_np = audio.numpy()
-                                else:
-                                    audio_np = np.array(audio, dtype=np.float32)
-                                
-                                # Scale float [-1.0, 1.0] to int16
-                                audio_int16 = np.clip(audio_np * 32767.0, -32768.0, 32767.0).astype(np.int16)
-                                chunks.append(audio_int16.tobytes())
-                        return chunks
+                    queue: asyncio.Queue = asyncio.Queue()
+                    sentinel = object()
 
-                    pcm_chunks = await loop.run_in_executor(None, generate_audio_chunks)
+                    def producer():
+                        try:
+                            generator = pipeline(text, voice=active_voice, speed=self.speed, split_pattern=r'\n+')
+                            for _, _, audio in generator:
+                                if audio is not None:
+                                    if hasattr(audio, 'numpy'):
+                                        audio_np = audio.numpy()
+                                    else:
+                                        audio_np = np.array(audio, dtype=np.float32)
+                                    
+                                    audio_int16 = np.clip(audio_np * 32767.0, -32768.0, 32767.0).astype(np.int16)
+                                    chunk_bytes = audio_int16.tobytes()
+                                    chunk_size = 4096
+                                    for i in range(0, len(chunk_bytes), chunk_size):
+                                        block = chunk_bytes[i:i + chunk_size]
+                                        loop.call_soon_threadsafe(queue.put_nowait, block)
+                        except Exception as p_err:
+                            logger.error(f"Error in Kokoro synthesis producer: {p_err}")
+                        finally:
+                            loop.call_soon_threadsafe(queue.put_nowait, sentinel)
 
-                    for chunk_bytes in pcm_chunks:
-                        if self._cancelled:
+                    prod_future = loop.run_in_executor(None, producer)
+
+                    while True:
+                        item = await queue.get()
+                        if item is sentinel or self._cancelled:
                             break
-                        # Yield in 4096-byte blocks for immediate low-latency streaming
-                        chunk_size = 4096
-                        for i in range(0, len(chunk_bytes), chunk_size):
-                            if self._cancelled:
-                                break
-                            block = chunk_bytes[i:i + chunk_size]
-                            yield AudioChunk(data=block, sample_rate=self.sample_rate)
+                        yield AudioChunk(data=item, sample_rate=self.sample_rate)
+
+                    await prod_future
                     return
                 except Exception as err:
                     logger.error(f"Error during KokoroTTS synthesis streaming: {err}")
