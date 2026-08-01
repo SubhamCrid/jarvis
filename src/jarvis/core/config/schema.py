@@ -53,8 +53,8 @@ class LLMConfig(BaseModel):
 
 
 class TTSConfig(BaseModel):
-    provider: str = Field(default="edge_tts")
-    voice: str = Field(default="en-US-AvaMultilingualNeural")
+    provider: str = Field(default="kokoro")
+    voice: str = Field(default="af_bella")
     speaker_id: int = Field(default=0)
     speed: float = Field(default=1.15)
     auto_switch_voice: bool = Field(default=False)

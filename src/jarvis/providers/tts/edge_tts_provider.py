@@ -97,12 +97,15 @@ class EdgeTTSProvider(TTSProtocol):
                     )
                     pcm_data, _ = p.communicate(input=bytes(mp3_buffer))
                     if pcm_data and not self._cancelled:
+                        # Prepend 80ms silent PCM padding to prevent initial syllable truncation
+                        silence_bytes = b"\x00" * int(self.sample_rate * 0.08 * 2)
+                        full_pcm = silence_bytes + pcm_data
                         # Chunk PCM data into 4096-byte blocks
                         chunk_size = 4096
-                        for i in range(0, len(pcm_data), chunk_size):
+                        for i in range(0, len(full_pcm), chunk_size):
                             if self._cancelled:
                                 break
-                            block = pcm_data[i:i + chunk_size]
+                            block = full_pcm[i:i + chunk_size]
                             yield AudioChunk(data=block, sample_rate=self.sample_rate)
                 except Exception as ff_err:
                     if not self._cancelled:

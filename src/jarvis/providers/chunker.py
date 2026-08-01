@@ -15,8 +15,14 @@ class SentenceChunker:
     ('.', '?', '!', '\n') are encountered.
     """
 
-    # Sentence boundary regex
-    SENTENCE_END_REGEX = re.compile(r"([^.!?\n]+[.!?\n]+)")
+    # Regex matching valid sentence boundaries:
+    # 1. Exclamation or question marks followed by optional punctuation and whitespace or end-of-string: [!?]+[^\w\s]*(?=\s+|$)
+    # 2. Period NOT inside a filename/number, followed by optional punctuation and mandatory whitespace: \.(?<!\b[a-zA-Z0-9]\.[a-zA-Z0-9])[^\w\s]*(?=\s+)
+    # 3. Newline characters: \n+
+    SENTENCE_SPLIT_REGEX = re.compile(
+        r"(.*?(?:[!?]+[^\w\s]*(?=\s+|$)|(?<!\b[a-zA-Z0-9]\.[a-zA-Z0-9])\.(?![a-zA-Z0-9_\-\.])[^\w\s]*(?=\s+)|[;\n]+))",
+        re.DOTALL
+    )
 
     def __init__(self, min_sentence_len: int = 15) -> None:
         self.min_sentence_len = min_sentence_len
@@ -32,7 +38,7 @@ class SentenceChunker:
         chunks = []
 
         while True:
-            match = self.SENTENCE_END_REGEX.search(self._buffer)
+            match = self.SENTENCE_SPLIT_REGEX.search(self._buffer)
             if not match:
                 break
             

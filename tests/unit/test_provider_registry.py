@@ -51,6 +51,7 @@ def test_provider_registration_and_list():
     assert "faster_whisper" in providers["stt"]
 
     assert "tts" in providers
+    assert "kokoro" in providers["tts"]
     assert "edge_tts" in providers["tts"]
     assert "piper" in providers["tts"]
 

@@ -15,12 +15,19 @@ class PathTraversalError(PermissionError):
 
 class PathSandbox:
     """
-    Enforces strict path normalization, symlink resolution, and root confinement.
-    Prevents path traversal attacks (e.g. '../../../etc/passwd') and symlink escapes.
+    Enforces strict path normalization, symlink resolution, and allowed root confinement.
+    Confines file operations to workspace_root and user home directory (Desktop, Downloads, Documents).
     """
 
     def __init__(self, workspace_root: Union[str, Path]) -> None:
         self.workspace_root = Path(workspace_root).resolve()
+        self.home_root = Path.home().resolve()
+        self.allowed_roots = [
+            self.workspace_root,
+            (self.home_root / "Desktop").resolve(),
+            (self.home_root / "Downloads").resolve(),
+            (self.home_root / "Documents").resolve(),
+        ]
 
     def validate_and_resolve(self, raw_path: Union[str, Path], must_exist: bool = False) -> Path:
         """
@@ -28,28 +35,58 @@ class PathSandbox:
 
         :param raw_path: Input path string or Path object.
         :param must_exist: If True, raise FileNotFoundError if target does not exist.
-        :return: Absolute resolved Path object within workspace_root.
-        :raises PathTraversalError: If the target path escapes the workspace_root.
+        :return: Absolute resolved Path object within allowed workspace/home boundaries.
+        :raises PathTraversalError: If target path escapes allowed roots.
         :raises FileNotFoundError: If must_exist is True and path does not exist.
         """
         if not raw_path:
             raise ValueError("Path string cannot be empty.")
 
-        path_obj = Path(raw_path)
+        raw_str = str(raw_path).strip()
+        path_obj = Path(raw_str)
+        lower_str = raw_str.lower().replace("\\", "/")
 
-        # Handle relative paths relative to workspace root
-        if not path_obj.is_absolute():
-            candidate = (self.workspace_root / path_obj).resolve()
+        # Handle system location aliases (Desktop, Downloads, Documents)
+        if lower_str == "desktop" or lower_str.startswith("desktop/"):
+            sub_path = raw_str[7:].lstrip("/\\")
+            candidate = (self.home_root / "Desktop" / sub_path).resolve()
+        elif lower_str == "downloads" or lower_str.startswith("downloads/"):
+            sub_path = raw_str[9:].lstrip("/\\")
+            candidate = (self.home_root / "Downloads" / sub_path).resolve()
+        elif lower_str == "documents" or lower_str.startswith("documents/"):
+            sub_path = raw_str[9:].lstrip("/\\")
+            candidate = (self.home_root / "Documents" / sub_path).resolve()
+        elif not path_obj.is_absolute():
+            ws_candidate = (self.workspace_root / path_obj).resolve()
+            if ws_candidate.exists() or not must_exist:
+                candidate = ws_candidate
+            else:
+                # Fallback: check if target file exists on Desktop or Downloads
+                desktop_candidate = (self.home_root / "Desktop" / path_obj).resolve()
+                downloads_candidate = (self.home_root / "Downloads" / path_obj).resolve()
+                if desktop_candidate.exists():
+                    candidate = desktop_candidate
+                elif downloads_candidate.exists():
+                    candidate = downloads_candidate
+                else:
+                    candidate = ws_candidate
         else:
             candidate = path_obj.resolve()
 
-        # Enforce root confinement using is_relative_to
-        try:
-            candidate.relative_to(self.workspace_root)
-        except ValueError:
+        # Enforce root confinement using allowed_roots
+        allowed = False
+        for root in self.allowed_roots:
+            try:
+                candidate.relative_to(root)
+                allowed = True
+                break
+            except ValueError:
+                pass
+
+        if not allowed:
             raise PathTraversalError(
                 f"Path traversal blocked: target '{raw_path}' resolves to '{candidate}', "
-                f"which is outside workspace boundary '{self.workspace_root}'."
+                f"which is outside allowed boundaries '{self.workspace_root}'."
             )
 
         if must_exist and not candidate.exists():

@@ -15,6 +15,16 @@ from jarvis.tools.schemas import (
 )
 
 
+def _format_path(sandbox: PathSandbox, path: Path) -> str:
+    try:
+        return str(path.relative_to(sandbox.workspace_root))
+    except ValueError:
+        try:
+            return str(path.relative_to(sandbox.home_root))
+        except ValueError:
+            return str(path)
+
+
 class ReadFileTool(BaseToolAdapter):
     """Tool for reading file contents safely within workspace bounds."""
 
@@ -27,7 +37,7 @@ class ReadFileTool(BaseToolAdapter):
             manifest=ToolManifest(
                 name="read_file",
                 version="1.0.0",
-                description="Read contents of a file within workspace directory.",
+                description="Read contents of a file within workspace or system directory (Desktop, Downloads, Documents).",
                 permission_level=PermissionLevel.READ_ONLY,
                 idempotent=True,
                 read_only=True,
@@ -37,7 +47,7 @@ class ReadFileTool(BaseToolAdapter):
             parameters_schema={
                 "type": "object",
                 "properties": {
-                    "path": {"type": "string", "description": "Relative path to file."},
+                    "path": {"type": "string", "description": "Relative or named path to file (e.g. notes.txt, Desktop/yo.txt)."},
                     "start_line": {"type": "integer", "description": "Optional starting line (1-indexed)."},
                     "end_line": {"type": "integer", "description": "Optional ending line (1-indexed)."},
                 },
@@ -67,7 +77,7 @@ class ReadFileTool(BaseToolAdapter):
             final_text = content
 
         return {
-            "path": str(resolved_path.relative_to(self.sandbox.workspace_root)),
+            "path": _format_path(self.sandbox, resolved_path),
             "total_lines": len(lines),
             "content": final_text,
         }
@@ -113,7 +123,7 @@ class WriteFileTool(BaseToolAdapter):
         bytes_written = len(content.encode("utf-8"))
 
         return {
-            "path": str(resolved_path.relative_to(self.sandbox.workspace_root)),
+            "path": _format_path(self.sandbox, resolved_path),
             "bytes_written": bytes_written,
             "success": True,
         }
@@ -162,7 +172,7 @@ class ListDirectoryTool(BaseToolAdapter):
             })
 
         return {
-            "directory": str(resolved_path.relative_to(self.sandbox.workspace_root)),
+            "directory": _format_path(self.sandbox, resolved_path),
             "total_items": len(items),
             "items": items,
         }
@@ -209,7 +219,7 @@ class SearchFilesTool(BaseToolAdapter):
                 # Ensure each matched path is inside sandbox
                 clean_p = self.sandbox.validate_and_resolve(p)
                 if clean_p.is_file():
-                    matched_files.append(str(clean_p.relative_to(self.sandbox.workspace_root)))
+                    matched_files.append(_format_path(self.sandbox, clean_p))
             except Exception:
                 continue
 

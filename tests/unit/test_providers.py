@@ -95,3 +95,24 @@ def test_edge_tts_script_selection():
     provider_auto = EdgeTTSProvider(voice="en-US-AvaMultilingualNeural", auto_switch_voice=True)
     assert provider_auto._select_voice_for_text("नमस्ते, आप कैसे हैं?") == "hi-IN-SwaraNeural"
 
+
+@pytest.mark.asyncio
+async def test_kokoro_tts_streaming():
+    from jarvis.providers.tts.kokoro_tts import KokoroTTS
+    tts = KokoroTTS(voice="af_bella", speed=1.15)
+    # Initialize will return True if kokoro installed, False if standby mode (both handled gracefully)
+    init_res = await tts.initialize()
+    assert isinstance(init_res, bool)
+
+    health_res = await tts.health()
+    assert health_res.details["voice"] == "af_bella"
+
+    chunks = []
+    async for chunk in tts.synthesize_stream("Hello from Kokoro TTS"):
+        chunks.append(chunk)
+
+    assert len(chunks) > 0
+    assert len(chunks[0].data) > 0
+    await tts.shutdown()
+
+

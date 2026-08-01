@@ -259,7 +259,14 @@ class VoiceAssistantCapability(BaseCapability):
             "show files", "show directory", "dir", "ls"
         ]
         if any(kw in lower for kw in list_keywords):
-            tool_actions.append(("list_directory", {"path": "."}))
+            target_dir = "."
+            if "desktop" in lower:
+                target_dir = "Desktop"
+            elif "downloads" in lower:
+                target_dir = "Downloads"
+            elif "documents" in lower:
+                target_dir = "Documents"
+            tool_actions.append(("list_directory", {"path": target_dir}))
 
         # 2. Check write file intent
         write_keywords = [
@@ -279,6 +286,9 @@ class VoiceAssistantCapability(BaseCapability):
                 if name_match and name_match.group(1).lower() not in ["for", "me", "a", "file", "and", "in", "to", "with"]:
                     filepath = name_match.group(1)
 
+            if "desktop" in lower and not filepath.lower().startswith("desktop"):
+                filepath = f"Desktop/{filepath}"
+
             # Extract content if mentioned
             content = f"File created by Jarvis AI Voice Assistant based on prompt: '{prompt}'"
             content_match = re.search(r'(?:with content|containing|saying|with text|content:)\s*["\']?([^"\']+)["\']?', prompt, re.IGNORECASE)
@@ -290,7 +300,7 @@ class VoiceAssistantCapability(BaseCapability):
         # 3. Check read specific file intent
         read_keywords = [
             "read file", "read a file", "read the file", "read in a file",
-            "contents of", "open file", "cat file", "show file", "view file"
+            "contents of", "read me contents", "read contents", "open file", "cat file", "show file", "view file"
         ]
         if not tool_actions and any(kw in lower for kw in read_keywords):
             filepath = "notes.txt"
@@ -301,6 +311,14 @@ class VoiceAssistantCapability(BaseCapability):
                 name_match = re.search(r'(?:read|contents of|file)\s+(?:file\s+)?([a-zA-Z0-9_\-\.]+)', prompt, re.IGNORECASE)
                 if name_match and name_match.group(1).lower() not in ["for", "me", "a", "file", "and", "in", "to", "the"]:
                     filepath = name_match.group(1)
+
+            if "desktop" in lower and not filepath.lower().startswith("desktop"):
+                filepath = f"Desktop/{filepath}"
+            elif "downloads" in lower and not filepath.lower().startswith("downloads"):
+                filepath = f"Downloads/{filepath}"
+            elif "documents" in lower and not filepath.lower().startswith("documents"):
+                filepath = f"Documents/{filepath}"
+
             tool_actions.append(("read_file", {"path": filepath}))
 
         # 4. Check search / information intent
@@ -317,6 +335,18 @@ class VoiceAssistantCapability(BaseCapability):
                         search_tool_name = name
                         break
                 tool_actions.append((search_tool_name, {"query": query}))
+
+        # 5. Check shell command intent
+        shell_keywords = ["run command", "execute command", "terminal command", "run shell", "exec command"]
+        if not tool_actions and any(kw in lower for kw in shell_keywords):
+            cmd = prompt
+            for kw in shell_keywords:
+                if kw in lower:
+                    idx = lower.find(kw) + len(kw)
+                    cmd = prompt[idx:].strip().lstrip(":\"' ")
+                    break
+            if cmd:
+                tool_actions.append(("run_command", {"command": cmd}))
 
         if not tool_actions:
             return None
@@ -337,6 +367,25 @@ class VoiceAssistantCapability(BaseCapability):
             call = ToolCall(call_id=call_id, tool_name=tool_name, params=params)
             res = await self.tool_runner.execute_call(call, spec, adapter)
             res_data = getattr(res, "data", getattr(res, "result", None))
+
+            # Fallback: if read_file fails with FILE_NOT_FOUND, search for file across Desktop & workspace
+            if not res.success and tool_name == "read_file":
+                target_name = Path(params.get("path", "")).name
+                if target_name:
+                    search_pair = self.tool_registry.get_tool("search_files")
+                    if search_pair:
+                        s_spec, s_adapter = search_pair
+                        s_call = ToolCall(call_id=f"call_{uuid.uuid4().hex[:8]}", tool_name="search_files", params={"pattern": f"*{target_name}*", "path": "Desktop"})
+                        s_res = await self.tool_runner.execute_call(s_call, s_spec, s_adapter)
+                        s_data = getattr(s_res, "data", getattr(s_res, "result", {}))
+                        matches = s_data.get("matches", []) if isinstance(s_data, dict) else []
+                        if matches:
+                            # Re-run read_file with discovered path
+                            found_path = matches[0]
+                            r_call = ToolCall(call_id=call_id, tool_name="read_file", params={"path": found_path})
+                            res = await self.tool_runner.execute_call(r_call, spec, adapter)
+                            res_data = getattr(res, "data", getattr(res, "result", None))
+
             await self.bus.publish(StepCompleted(plan_id="voice-plan", step_id=call_id, success=res.success, result=res_data if res.success else str(res.error)))
 
             if res.success:
@@ -361,6 +410,7 @@ class VoiceAssistantCapability(BaseCapability):
         start_time: Optional[float] = None,
     ) -> None:
         """Process a text query directly through LLM and TTS pipeline."""
+        self._active_task = asyncio.current_task()
         self._is_cancelled = False
         if hasattr(self.audio_session, "reset_stop_flag"):
             self.audio_session.reset_stop_flag()
@@ -543,5 +593,8 @@ class VoiceAssistantCapability(BaseCapability):
         await self.tts.cancel()
         await self.llm.cancel()
         await self.bus.publish(TaskCancelled(reason="Barge-in / User Cancellation"))
-        await safe_cancel_task(self._active_task)
+        current = asyncio.current_task()
+        if self._active_task and self._active_task != current:
+            await safe_cancel_task(self._active_task)
+            self._active_task = None
 

@@ -247,11 +247,23 @@ class SoundDeviceAudioSession(AudioSessionProtocol):
                             )
                             self._output_stream.start()
                             current_sr = sr
+                            # Priming DAC hardware buffer with 100ms silent PCM to eliminate start clipping
+                            silence_priming = np.zeros(int(sr * 0.1), dtype=np.int16)
+                            try:
+                                self._output_stream.write(silence_priming)
+                            except Exception:
+                                pass
 
                         def _write_pcm():
                             if not self._stop_requested and self._output_stream and self._output_stream.active:
                                 try:
-                                    self._output_stream.write(audio_np)
+                                    # Chunk write into 512-sample sub-blocks so stop_requested interrupts immediately
+                                    sub_block_size = 512
+                                    for idx in range(0, len(audio_np), sub_block_size):
+                                        if self._stop_requested or not self._output_stream or not self._output_stream.active:
+                                            break
+                                        sub_block = audio_np[idx:idx + sub_block_size]
+                                        self._output_stream.write(sub_block)
                                 except Exception:
                                     pass
 

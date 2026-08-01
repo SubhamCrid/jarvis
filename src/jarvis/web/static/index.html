@@ -1449,6 +1449,10 @@
         history.appendChild(node);
       }
 
+      if (params) node.dataset.params = JSON.stringify(params);
+      const cachedParams = node.dataset.params ? JSON.parse(node.dataset.params) : null;
+      const displayParams = params || cachedParams;
+
       let content = `
         <div class="msg-tool-header">
           <span class="tool-badge-title">🔧 ${escapeHtml(toolName)} <small style="opacity:0.6;">(${callId})</small></span>
@@ -1456,8 +1460,8 @@
         </div>
       `;
 
-      if (params && Object.keys(params).length > 0) {
-        content += `<div class="tool-json-box"><strong>Input:</strong>\n${escapeHtml(JSON.stringify(params, null, 2))}</div>`;
+      if (displayParams && Object.keys(displayParams).length > 0) {
+        content += `<div class="tool-json-box"><strong>Input:</strong>\n${escapeHtml(JSON.stringify(displayParams, null, 2))}</div>`;
       }
       if (output !== null && output !== undefined) {
         const strVal = typeof output === 'object' ? JSON.stringify(output, null, 2) : String(output);

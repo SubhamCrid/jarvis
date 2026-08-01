@@ -40,8 +40,8 @@ llm:
   system_prompt: "You are Jarvis, a helpful local voice assistant. Keep all responses brief (1 to 2 sentences maximum), clear, and natural for speech synthesis."
 
 tts:
-  provider: "edge_tts"
-  voice: "en-US-AvaMultilingualNeural"
+  provider: "kokoro"
+  voice: "af_bella"
   speaker_id: 0
   speed: 1.15
   auto_switch_voice: false

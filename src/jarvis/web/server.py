@@ -112,6 +112,7 @@ class WebDashboardServer:
         })
 
     async def _on_bus_event(self, event: Any) -> None:
+        from jarvis.runtime.events import StepStarted, StepCompleted
         if isinstance(event, TranscriptReady):
             await self.broadcast({"type": "transcript", "text": event.text})
         elif isinstance(event, TokenGenerated):
@@ -120,6 +121,22 @@ class WebDashboardServer:
             await self.broadcast({"type": "sentence", "sentence": event.sentence})
         elif isinstance(event, TaskCancelled):
             await self.broadcast({"type": "task_cancelled", "reason": event.reason})
+        elif isinstance(event, StepStarted):
+            await self.broadcast({
+                "type": "tool_executing",
+                "call_id": event.step_id,
+                "tool_name": event.action_name,
+                "params": getattr(event, "params", {}),
+            })
+        elif isinstance(event, StepCompleted):
+            await self.broadcast({
+                "type": "tool_completed",
+                "call_id": event.step_id,
+                "tool_name": getattr(event, "capability_name", "tool"),
+                "success": event.success,
+                "result": event.result,
+                "execution_time_ms": getattr(event, "execution_time_ms", 0),
+            })
 
         await self.broadcast({
             "type": "metrics",
@@ -176,6 +193,8 @@ class WebDashboardServer:
         prompt = data.get("prompt", "")
         if prompt and self.orchestrator.voice_capability:
             logger.info(f"Web dashboard submitted prompt: '{prompt}'")
+            # Cancel active audio synthesis/generation before starting new prompt
+            await self.orchestrator.cancel()
             asyncio.create_task(
                 self.orchestrator.voice_capability.process_text_prompt(prompt)
             )
@@ -285,7 +304,7 @@ class WebDashboardServer:
         return web.json_response({"fsm_state": state})
 
     async def _handle_respond_approval(self, request: web.Request) -> web.Response:
-        data = await request.json() if request and request.has_body else {}
+        data = await request.json() if request and request.can_read_body else {}
         req_id = data.get("request_id", "default")
         approved = data.get("approved", True)
         logger.info(f"Human approval response for {req_id}: approved={approved}")

@@ -33,6 +33,7 @@ class ProviderRegistry:
                 "jarvis.providers.stt.mock_stt",
                 "jarvis.providers.stt.whisper_cpp_stt",
                 "jarvis.providers.tts.edge_tts_provider",
+                "jarvis.providers.tts.kokoro_tts",
                 "jarvis.providers.tts.mock_tts",
                 "jarvis.providers.tts.piper_tts",
                 "jarvis.providers.wakeword.mock_wakeword",
