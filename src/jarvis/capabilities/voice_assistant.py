@@ -627,9 +627,12 @@ class VoiceAssistantCapability(BaseCapability):
         await self.audio_session.stop_playback()
         await self.tts.cancel()
         await self.llm.cancel()
+        if self.wakeword and hasattr(self.wakeword, "reset"):
+            self.wakeword.reset()
         await self.bus.publish(TaskCancelled(reason="Barge-in / User Cancellation"))
         current = asyncio.current_task()
         if self._active_task and self._active_task != current:
             await safe_cancel_task(self._active_task)
             self._active_task = None
+
 

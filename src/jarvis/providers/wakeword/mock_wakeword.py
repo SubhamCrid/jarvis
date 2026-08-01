@@ -25,6 +25,9 @@ class MockWakeWord(WakeWordProtocol):
         """Programmatically trigger wake event for automated testing."""
         self._force_trigger = True
 
+    def reset(self) -> None:
+        self._force_trigger = False
+
     async def detect(self, pcm_data: bytes) -> bool:
         if self._force_trigger:
             self._force_trigger = False
@@ -39,7 +42,9 @@ class MockWakeWord(WakeWordProtocol):
         return HealthStatus(status=self._status, message="Mock Wake Word active")
 
     async def shutdown(self) -> None:
+        self._force_trigger = False
         self._status = ServiceStatus.STOPPED
 
     async def cancel(self) -> None:
-        pass
+        self._force_trigger = False
+

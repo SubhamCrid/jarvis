@@ -146,9 +146,13 @@ class WebDashboardServer:
     async def _handle_trigger_wake(self, request: web.Request) -> web.Response:
         logger.info("Web dashboard triggered wake event.")
         await self.orchestrator.cancel()
+        if self.orchestrator.wakeword and hasattr(self.orchestrator.wakeword, "reset"):
+            self.orchestrator.wakeword.reset()
         if self.orchestrator.voice_capability:
             self.orchestrator.voice_capability._audio_buffer.clear()
             self.orchestrator.voice_capability.vad.reset()
+            if hasattr(self.orchestrator.voice_capability.wakeword, "reset"):
+                self.orchestrator.voice_capability.wakeword.reset()
             import time
             self.orchestrator.voice_capability._listening_start_time = time.perf_counter()
         await self.orchestrator.bus.publish(WakeDetected(score=1.0, model_name="hey_jarvis"))
@@ -159,12 +163,17 @@ class WebDashboardServer:
     async def _handle_stop_listening(self, request: web.Request) -> web.Response:
         logger.info("Web dashboard triggered stop listening.")
         await self.orchestrator.cancel()
+        if self.orchestrator.wakeword and hasattr(self.orchestrator.wakeword, "reset"):
+            self.orchestrator.wakeword.reset()
         if self.orchestrator.voice_capability:
             self.orchestrator.voice_capability._audio_buffer.clear()
             self.orchestrator.voice_capability.vad.reset()
             self.orchestrator.voice_capability._listening_start_time = 0.0
+            if hasattr(self.orchestrator.voice_capability.wakeword, "reset"):
+                self.orchestrator.voice_capability.wakeword.reset()
         await self.orchestrator.fsm.force_transition_to(FSMState.IDLE)
         return web.json_response({"status": "listening_stopped"})
+
 
     async def _handle_interrupt(self, request: web.Request) -> web.Response:
         logger.info("Web dashboard triggered barge-in interrupt.")

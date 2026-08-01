@@ -76,9 +76,19 @@ class OpenWakeWordProvider(WakeWordProtocol):
             details={"model": self.model_name, "threshold": self.threshold}
         )
 
+    def reset(self) -> None:
+        """Reset openwakeword prediction history buffer."""
+        if self._oww_model and hasattr(self._oww_model, "reset"):
+            try:
+                self._oww_model.reset()
+            except Exception as e:
+                logger.warning(f"Error resetting OpenWakeWordProvider model: {e}")
+
     async def shutdown(self) -> None:
+        self.reset()
         self._oww_model = None
         self._status = ServiceStatus.STOPPED
 
     async def cancel(self) -> None:
-        pass
+        self.reset()
+
