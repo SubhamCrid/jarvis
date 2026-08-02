@@ -16,6 +16,7 @@ from jarvis.tools.registry import ToolRegistry
 from jarvis.tools.runner import ToolRunner
 from jarvis.tools.config import ToolsConfig
 from jarvis.search.pipeline import SearchPipelineEngine
+from jarvis.internet.platform import InternetPlatform
 
 logger = logging.getLogger("jarvis.core.container")
 
@@ -37,11 +38,12 @@ class ServiceContainer:
         self.context_manager = ContextManager()
         self.capability_registry = CapabilityRegistry()
 
-        # 2. Instantiate Search & Tools Platforms
+        # 2. Instantiate Search, Tools & Internet Platforms
         self.tools_config = ToolsConfig.from_env()
         self.tool_registry = ToolRegistry()
         self.tool_runner = ToolRunner(config=self.tools_config)
         self.search_engine = SearchPipelineEngine()
+        self.internet_platform = InternetPlatform()
 
         # 3. Instantiate Memory Platform
         self.memory_coordinator = MemoryCoordinator()
@@ -65,6 +67,7 @@ class ServiceContainer:
         self.register_service(ToolRegistry, self.tool_registry)
         self.register_service(ToolRunner, self.tool_runner)
         self.register_service(SearchPipelineEngine, self.search_engine)
+        self.register_service(InternetPlatform, self.internet_platform)
 
     def register_service(self, service_type: Type[T], instance: T) -> None:
         self._services[service_type] = instance
@@ -76,8 +79,10 @@ class ServiceContainer:
 
     async def initialize(self) -> None:
         logger.info("Initializing ServiceContainer dependencies...")
+        await self.internet_platform.initialize()
         await self.memory_coordinator.initialize_defaults()
         await self.memory_capability.initialize()
         self.capability_registry.register(self.memory_capability)
         await self.runtime.initialize()
         logger.info("ServiceContainer fully initialized.")
+

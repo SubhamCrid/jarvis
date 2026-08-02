@@ -32,6 +32,7 @@ from jarvis.tools.capability import ToolsCapability
 from jarvis.tools.config import ToolsConfig
 from jarvis.tools.registry import ToolRegistry
 from jarvis.tools.runner import ToolRunner
+from jarvis.internet.platform import InternetPlatform
 
 logger = logging.getLogger("jarvis.orchestrator")
 
@@ -135,9 +136,16 @@ class AssistantOrchestrator(BaseServiceProtocol):
         await self.voice_capability.initialize()
         self.capability_registry.register(self.voice_capability)
 
-        # Register SearchToolAdapter into ToolRegistry
+        # Resolve Internet platform
+        self.internet_platform = self.container.resolve(InternetPlatform)
+
+        # Register SearchToolAdapter and InternetSearchToolAdapter into ToolRegistry
         search_adapter = SearchToolAdapter(self.search_engine)
         self.tool_registry.register(search_adapter.spec, search_adapter)
+
+        from jarvis.tools.adapters.internet.search_tool import InternetSearchToolAdapter
+        internet_search_adapter = InternetSearchToolAdapter(self.internet_platform)
+        self.tool_registry.register(internet_search_adapter.spec, internet_search_adapter)
 
         # Initialize Tools capability
         self.tools_capability = ToolsCapability(self.tool_registry, self.tool_runner)
@@ -151,7 +159,7 @@ class AssistantOrchestrator(BaseServiceProtocol):
 
         self._status = ServiceStatus.RUNNING
         logger.info(
-            "AssistantOrchestrator successfully initialized with Policy, Context, Memory, Runtime, Voice, Tools, and Search platforms."
+            "AssistantOrchestrator successfully initialized with Policy, Context, Memory, Runtime, Voice, Tools, Search, and Internet platforms."
         )
         return True
 

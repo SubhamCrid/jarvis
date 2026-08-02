@@ -35,23 +35,7 @@ class StepState(str, Enum):
     SKIPPED = "skipped"
 
 
-class CancellationToken:
-    """Thread-safe and async-safe cancellation token wrapper."""
-
-    def __init__(self) -> None:
-        self._event = asyncio.Event()
-
-    def cancel(self) -> None:
-        """Trigger cancellation signal."""
-        self._event.set()
-
-    def is_cancelled(self) -> bool:
-        """Check if cancellation was requested."""
-        return self._event.is_set()
-
-    async def wait(self) -> None:
-        """Wait until cancellation is requested."""
-        await self._event.wait()
+from jarvis.core.base import CancellationToken
 
 
 @dataclass
